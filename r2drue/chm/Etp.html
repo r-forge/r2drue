@@ -1,0 +1,124 @@
+<html><head><title>Hargraves-Samani Potential Evapotranspiration function</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" href="Rchm.css">
+</head>
+<body>
+
+<table width="100%"><tr><td>petHgsm(r2dRue)</td><td align="right">R Documentation</td></tr></table><object type="application/x-oleobject" classid="clsid:1e2a7bd0-dab9-11d0-b93a-00c04fc99f9e">
+<param name="keyword" value="R:   batchPetHgsm">
+<param name="keyword" value="R:   petHgsm">
+<param name="keyword" value=" Hargraves-Samani Potential Evapotranspiration function">
+</object>
+
+
+<h2>Hargraves-Samani Potential Evapotranspiration function</h2>
+
+
+<h3>Description</h3>
+
+<p>
+Given a set of images of temperature and solar radiation, the potential evapotranspiration is calculated according to Hargraves-Samani equation. batchPet () provides a batch process to calculate the PET over several sets of images.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+petHgsm(Tmin,Tmax,Tmed,Rad,month)
+batchPetHgsm(date, Tmin, Tmax, Tmed, Rad, outFl, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>date</code></td>
+<td>
+A vector with the year and the month of the first image dataset. Like  c(1970,1) for january 1970
+</td></tr>
+<tr valign="top"><td><code>month</code></td>
+<td>
+The month to calc the PET (numeric 1 to 12)
+</td></tr>
+<tr valign="top"><td><code>Tmin</code></td>
+<td>
+In petHgsm a SpatialGridDataFrame with minimum air temperature (Celsius degree)
+In batchpetHgsm a character vector with the names of the files with minimum air temperature (Celsius degree)
+</td></tr>
+<tr valign="top"><td><code>Tmax</code></td>
+<td>
+In petHgsm a SpatialGridDataFrame with maximum air temperature (Celsius degree)
+In batchpetHgsm a character vector with the names of the files with maximum air temperature (Celsius degree)
+</td></tr>
+<tr valign="top"><td><code>Tmed</code></td>
+<td>
+In petHgsm a SpatialGridDataFrame with mean air temperature (Celsius degree)
+In batchpetHgsm a character vector with the names of the files with mean air temperature (Celsius degree)
+</td></tr>
+<tr valign="top"><td><code>Rad</code></td>
+<td>
+In petHgsm a SpatialGridDataFrame with extra-terrestial solar radiation
+In batchpetHgsm a character vector with the names of the files with extra-terrestial solar radiation
+</td></tr>
+<tr valign="top"><td><code>outFl</code></td>
+<td>
+A list of file names to save the results
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+Any unmatched parameter will be passed to the writeGDAL routine.
+</td></tr>
+</table>
+
+<h3>Value</h3>
+
+<p>
+petHgsm returns a spatialGridDataFrame representing the potential evapotranspiration. batchEtp write to disc, the calculated images for each set of images provided.</p>
+
+<h3>Author(s)</h3>
+
+<p>
+Gabriel del Barrio, Marieta E. SanJuan &amp; Alberto Ruiz
+</p>
+
+
+<h3>References</h3>
+
+<p>
+Estimating potential evapotranspiration.
+Hargreaves, G.H., Samani, Z.A. 
+Journal of the Irrigation &amp; Drainage Division - ASCE 
+Volume 108, Issue IR3, 1982, Pages 225-230
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+#not run
+## Read  the temperature and radiation data 
+#tmin=readGDAL('Tmin_Ene1990')
+#tmax=readGDAL('Tmax_Ene1990')
+#tmea=readGDAL('Tmea_Ene1990')
+#rad=readGDAL('SolarRad_Ene1990')
+## Calc the PET for Ene 1990
+#PetEne=petHgsm(tmin,tmax,tmea,rad, 1)
+#writeGDAL(PetEne,'PetEne1990')
+## Or to calculate and write to disk, in a batch process, a set of PETs
+## create the Input file list
+#Flmin=c('Tmin_Ene1990','Tmin_Feb1990', 'Tmin_Mar1990')
+#Flmax=c('Tmax_Ene1990','Tmax_Feb1990', 'Tmax_Mar1990')
+#Flmea=c('Tmea_Ene1990','Tmea_Feb1990', 'Tmea_Mar1990')
+#Flrad=c('Rad_Ene','Rad_Feb', 'Rad_Mar')
+#PETFileNames=c('PET_Ene1990','PET_Feb1990', 'PET_Mar1990')
+##define the date of the first image
+#iniDate=c(1,1990)
+#batchPET(iniDate, Flmin, Flmax, Flmea, Flrad, PETFileNames)
+
+</pre>
+
+
+
+<hr><div align="center">[Package <em>r2dRue</em> version 1.0 <a href="00Index.html">Index</a>]</div>
+
+</body></html>

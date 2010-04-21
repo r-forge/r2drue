@@ -1,0 +1,87 @@
+<html><head><title>Stack bands from raster image files</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" href="Rchm.css">
+</head>
+<body>
+
+<table width="100%"><tr><td>rasterStack(r2dRue)</td><td align="right">R Documentation</td></tr></table><object type="application/x-oleobject" classid="clsid:1e2a7bd0-dab9-11d0-b93a-00c04fc99f9e">
+<param name="keyword" value="R:   rasterStack">
+<param name="keyword" value=" Stack bands from raster image files">
+</object>
+
+
+<h2>Stack bands from raster image files</h2>
+
+
+<h3>Description</h3>
+
+<p>
+rasterStack concatenates multiple raster files into a single file. Provides support to several interleaved schemas; BIP (Bands interleaved by pixel), BIL (Band interleaved by line)or BSQ (Bands sequential). The output concatenated file may be saved in Ascii or binary format.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+rasterStack(inFl, outFN, asc = FALSE, zip = FALSE, dec = 3, interleave = "BIP", silent = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>inFl</code></td>
+<td>
+A List with the name of the files to be concatenated
+</td></tr>
+<tr valign="top"><td><code>outFN</code></td>
+<td>
+The name of the output file
+</td></tr>
+<tr valign="top"><td><code>asc</code></td>
+<td>
+Logical. If TRUE the output is a ASCII file
+</td></tr>
+<tr valign="top"><td><code>zip</code></td>
+<td>
+Logical. If TRUE the output is zipped. Only used if asc is TRUE.
+</td></tr>
+<tr valign="top"><td><code>dec</code></td>
+<td>
+Integer. If present, the output values are rounded to the specified number of decimal places. Only used if asc is TRUE.
+</td></tr>
+<tr valign="top"><td><code>interleave</code></td>
+<td>
+The interleave format. BIP, BIL or BSQ.
+</td></tr>
+<tr valign="top"><td><code>silent</code></td>
+<td>
+logical; if TRUE, comment and non-fatal CPL driver errors suppressed
+</td></tr>
+</table>
+
+<h3>Details</h3>
+
+<p>
+In binary mode (default), the data is stored as 32bit Floating point number.
+Only the first band of each image is used.
+This feature is not intended to be of general utility. It is used in internal processes to arrange image data into a format optimum for the process.
+</p>
+
+
+<h3>Value</h3>
+
+<p>
+An ASCII or binary file.</p>
+
+<h3>Author(s)</h3>
+
+<p>
+Alberto Ruiz. aruiz@eeza.csic.es
+</p>
+
+
+
+<hr><div align="center">[Package <em>r2dRue</em> version 1.0 <a href="00Index.html">Index</a>]</div>
+
+</body></html>

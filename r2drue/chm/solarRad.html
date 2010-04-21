@@ -1,0 +1,103 @@
+<html><head><title>Extra-terrestrial solar radiation</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" href="Rchm.css">
+</head>
+<body>
+
+<table width="100%"><tr><td>solarRad(r2dRue)</td><td align="right">R Documentation</td></tr></table><object type="application/x-oleobject" classid="clsid:1e2a7bd0-dab9-11d0-b93a-00c04fc99f9e">
+<param name="keyword" value="R:   solarRad12M">
+<param name="keyword" value="R:   solarRad">
+<param name="keyword" value=" Extra-terrestrial solar radiation">
+</object>
+
+
+<h2>Extra-terrestrial solar radiation</h2>
+
+
+<h3>Description</h3>
+
+<p>
+solarRad calculate the solar radiation received at the top of the earth's 
+atmosphere on a horizontal surface. 
+This radiation will change during the day and will be different at different 
+latitudes and in different seasons.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+solarRad(img, day = 15)
+solarRad12M(img, outFl, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>img</code></td>
+<td>
+object of class SpatialGridDataFrame that provided a projection class and a bbox attributes.
+The nature of the data.frame that contains the attribute data, is not relevant.
+Must be in geographic coordinates.
+</td></tr>
+<tr valign="top"><td><code>day</code></td>
+<td>
+The number of the day (from 1 to 365) to calculate the extraterrestrial radiation.
+</td></tr>
+<tr valign="top"><td><code>outFl</code></td>
+<td>
+A list of 12 file names to save the results.
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+Any unmatched parameter will be passed to the writeGDAL routine.
+</td></tr>
+</table>
+
+<h3>Details</h3>
+
+<p>
+The output is expressed in cal/cm2*day
+</p>
+
+
+<h3>Value</h3>
+
+<p>
+solarRad returns a SpatialGridDataFrame class.
+solarRad12M write on disk 12 images in the format especified by the writeGDAL drivername parameter.</p>
+
+<h3>Author(s)</h3>
+
+<p>
+Gabriel del Barrio, Marieta E. SanJuan &amp; Alberto Ruiz
+</p>
+
+
+<h3>References</h3>
+
+<p>
+Crop evapotranspiration - Guidelines for computing crop water requirements - FAO Irrigation and drainage paper 56
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+#not run
+#aux=readGDAL('iberia_mask')
+#calc the extraterrestial radiation the 15-agost
+#Rad=solarRad(aux,227)
+#writeGDAL(Rad,'solarrad_15ago')
+#or to calculate and write to disk, the radiation of the twelve months
+#RadFileNames=paste('rad',month.abb,sep='')
+#solarRad12M(img,RadFileNames)
+
+</pre>
+
+
+
+<hr><div align="center">[Package <em>r2dRue</em> version 1.0 <a href="00Index.html">Index</a>]</div>
+
+</body></html>

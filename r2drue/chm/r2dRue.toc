@@ -1,0 +1,115 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HEAD></HEAD><HTML><BODY>
+<UL>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="Package r2dRue:  Contents">
+<param name="Local" value="00Index.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="Package r2dRue:  R objects">
+</OBJECT>
+<UL>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="r2dRue-package">
+<param name="Local" value="r2dRue-package.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="aiObsEx">
+<param name="Local" value="rueObsEx.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="aiObsMe">
+<param name="Local" value="rueObsEx.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="batchPetHgsm">
+<param name="Local" value="Etp.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="petHgsm">
+<param name="Local" value="Etp.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="r2dRue">
+<param name="Local" value="r2dRue-package.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="rasterStack">
+<param name="Local" value="rasterStack.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="regStepRaster">
+<param name="Local" value="regStepRaster.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="rgf.create">
+<param name="Local" value="rgf.create.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="rgf.read">
+<param name="Local" value="rgf.create.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="rgf.summary">
+<param name="Local" value="rgf.summary.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="rgf.when">
+<param name="Local" value="rgf.summary.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="rueObsEx">
+<param name="Local" value="rueObsEx.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="rueObsMe">
+<param name="Local" value="rueObsEx.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="solarRad">
+<param name="Local" value="solarRad.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="solarRad12M">
+<param name="Local" value="solarRad.html">
+</OBJECT>
+</UL>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="Package r2dRue:  Titles">
+</OBJECT>
+<UL>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="2dRue indexes">
+<param name="Local" value="rueObsEx.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="2dRUE model functions">
+<param name="Local" value="r2dRue-package.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="Extra-terrestrial solar radiation">
+<param name="Local" value="solarRad.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="Function to summarize raster group files.">
+<param name="Local" value="rgf.summary.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="Functions to read and write raster group files.">
+<param name="Local" value="rgf.create.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="Hargraves-Samani Potential Evapotranspiration function">
+<param name="Local" value="Etp.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="Stack bands from raster image files">
+<param name="Local" value="rasterStack.html">
+</OBJECT>
+<LI> <OBJECT type="text/sitemap">
+<param name="Name" value="Step Regresion over raster images">
+<param name="Local" value="regStepRaster.html">
+</OBJECT>
+</UL>
+</UL>
+</BODY></HTML>

@@ -1,0 +1,22 @@
+[OPTIONS]
+Auto Index=Yes
+Contents file=r2dRue.toc
+Compatibility=1.1 or later
+Compiled file=r2dRue.chm
+Default topic=00Index.html
+Display compile progress=No
+Full-text search=Yes
+Full text search stop list file=..\..\..\gnuwin32\help\R.stp
+Title=R Help for package r2dRue
+
+
+[FILES]
+00Index.html
+Etp.html
+r2dRue-package.html
+rasterStack.html
+regStepRaster.html
+rgf.create.html
+rgf.summary.html
+rueObsEx.html
+solarRad.html

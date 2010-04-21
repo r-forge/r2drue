@@ -1,0 +1,130 @@
+<html><head><title>2dRue indexes</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" href="Rchm.css">
+</head>
+<body>
+
+<table width="100%"><tr><td>rueObsEx(r2dRue)</td><td align="right">R Documentation</td></tr></table><object type="application/x-oleobject" classid="clsid:1e2a7bd0-dab9-11d0-b93a-00c04fc99f9e">
+<param name="keyword" value="R:   aiObsMe">
+<param name="keyword" value="R:   aiObsEx">
+<param name="keyword" value="R:   rueObsMe">
+<param name="keyword" value="R:   rueObsEx">
+<param name="keyword" value=" 2dRue indexes">
+</object>
+
+
+<h2>2dRue indexes</h2>
+
+
+<h3>Description</h3>
+
+<p>
+Functions to calculate several files needed to calculate de 2dRue model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+rueObsMe(rainFl, viFl, silent = FALSE)
+aiObsMe(rainFl, petFl, FAO = FALSE, silent = FALSE)
+rueObsEx(rainFl, viFl, preRainFl, nMonths = 6, silent = FALSE)
+aiObsEx(rainFl, viFl, petFl, preRainFl, prePetFl, FAO=FALSE, nMonths = 6, silent = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>rainFl</code></td>
+<td>
+Text list (vector) with the file names of the rainfall grids
+</td></tr>
+<tr valign="top"><td><code>viFl</code></td>
+<td>
+Text list (vector) with the file names of the vegetation index grids
+</td></tr>
+<tr valign="top"><td><code>petFl</code></td>
+<td>
+Text list (vector) with the file names of the evapotranspiration grids
+</td></tr>
+<tr valign="top"><td><code>preRainFl</code></td>
+<td>
+Text list (vector) with the file names of the rainfall files outside the given period
+</td></tr>
+<tr valign="top"><td><code>prePetFl</code></td>
+<td>
+Text list (vector) with the file names of the evapotranspiration files outside the given period
+</td></tr>
+<tr valign="top"><td><code>FAO</code></td>
+<td>
+logical; If TRUE the index is according with the FAO definition
+</td></tr>
+<tr valign="top"><td><code>nMonths</code></td>
+<td>
+A integer value representing the water acumulation period.
+If a valid image filename is supplied, the value is read from the file.
+</td></tr>
+<tr valign="top"><td><code>silent</code></td>
+<td>
+logical; if TRUE, comment and non-fatal CPL driver errors suppressed
+</td></tr>
+</table>
+
+<h3>Details</h3>
+
+<p>
+rueObsMe calculate the mean observed RUE.
+aiObsMe calculate the mean observed aridity index.
+rueObsEx calculate the extrem observed RUE.
+aiObsEx calculate the extrem aridity index.
+</p>
+
+
+<h3>Value</h3>
+
+<p>
+The output of each function is a SpatialGridDataFrame class</p>
+
+<h3>Author(s)</h3>
+
+<p>
+Gabriel del Barrio, Juan Puigdefabregas, Maria E. Sanjuan &amp; Alberto Ruiz
+</p>
+
+
+<h3>References</h3>
+
+<p>
+Article submitted and under revision.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+#not work...
+#frain=rgf.read('rain.rgf')
+#fpet=rgf.read('pet.rgf')
+#fvi=rgf.read('ndvi.rgf')
+#rome=rueObsMe(frain,fvi)
+#summary(rome)
+#image(rome)
+#writeGDAL(rome,'rome.rst',drivername='RST',mvFlag=-99)
+#aiome=rueObsMe(frain,fvi,fpet)
+#writeGDAL(aiome,'aiome.rst',drivername='RST',mvFlag=-99)
+
+#fprain=read.rgf('prerain.rgf')
+#fppet=read.rgf('prepet.rgf')
+#roex=rueObsEx(frain,fvi,fprain)
+#aioex=rueObsEx(frain,fvi,fprain,fppet)
+#writeGDAL(roex,'roex.rst',drivername='RST',mvFlag=-99)
+#writeGDAL(aioex,'aioex.rst',drivername='RST',mvFlag=-99)
+
+</pre>
+
+
+
+<hr><div align="center">[Package <em>r2dRue</em> version 1.0 <a href="00Index.html">Index</a>]</div>
+
+</body></html>

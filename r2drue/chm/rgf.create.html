@@ -1,0 +1,98 @@
+<html><head><title>Functions to read and write raster group files.</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" href="Rchm.css">
+</head>
+<body>
+
+<table width="100%"><tr><td>rgf.create(r2dRue)</td><td align="right">R Documentation</td></tr></table><object type="application/x-oleobject" classid="clsid:1e2a7bd0-dab9-11d0-b93a-00c04fc99f9e">
+<param name="keyword" value="R:   rgf.create">
+<param name="keyword" value="R:   rgf.read">
+<param name="keyword" value=" Functions to read and write raster group files.">
+</object>
+
+
+<h2>Functions to read and write raster group files.</h2>
+
+
+<h3>Description</h3>
+
+<p>
+These functions may facilitate working with raster group files.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+rgf.read(inFl)
+rgf.create(prefix,suffix='',ini,fin=ini,monthini=1,output)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>inFl</code></td>
+<td>
+Filename of the Rgf file to be read
+</td></tr>
+<tr valign="top"><td><code>prefix</code></td>
+<td>
+Prefix of the output filenames
+</td></tr>
+<tr valign="top"><td><code>suffix</code></td>
+<td>
+Sufix of the output filenames
+</td></tr>
+<tr valign="top"><td><code>ini</code></td>
+<td>
+Initial year
+</td></tr>
+<tr valign="top"><td><code>fin</code></td>
+<td>
+Final year
+</td></tr>
+<tr valign="top"><td><code>monthini</code></td>
+<td>
+Initial month (numeric in the 1 to 12 range)
+</td></tr>
+<tr valign="top"><td><code>output</code></td>
+<td>
+Filename to be written to disk
+</td></tr>
+</table>
+
+<h3>Details</h3>
+
+<p>
+rgf.read reads a raster group file and returns a character vector with the read values.
+rgf.create is useful to generate sequences of file names that contain an indicator of the month and year. Like in Ndvi199001.tif, Ndvi199002.tif ... Ndvi199012.tif, Ndvi199101.tif, Ndvi199102.tif ... Where a prefix (Ndvi) is concatenated to a sequence of years (1990,1991) and months(01,02,...,12) and ended with a suffix (.tif).
+</p>
+
+
+<h3>Value</h3>
+
+<p>
+Rgf.read returns a character vector with the filenames in the rgf file.
+Rgf.create returns a character vector. If you supply the output file name parameter, then the list is writen to disc.</p>
+
+<h3>Author(s)</h3>
+
+<p>
+Alberto Ruiz, aruiz@eeza.csic.es
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+rgf.create('ndvi','.rst',1970,1975,output='ndvi.rgf')
+ndvifiles=rgf.read('ndvi.rgf')
+
+</pre>
+
+
+
+<hr><div align="center">[Package <em>r2dRue</em> version 1.0 <a href="00Index.html">Index</a>]</div>
+
+</body></html>
