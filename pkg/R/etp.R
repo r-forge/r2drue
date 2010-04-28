@@ -1,3 +1,4 @@
+DiasMes=c(31,28,31,30,31,30,31,31,30,31,30,31)
 
 ###############################################
 # NAME: 
@@ -5,11 +6,7 @@
 # INPUTS:
 # OUTPUTS:
 ###############################################
-
 petHgsm= function(Tmin, Tmax, Tmed, Rad, month){
-	
-	DiasMes=c(31,28,31,30,31,30,31,31,30,31,30,31)
-	
 	img=Tmed
 	img$band1=0.0023*Rad$band1*0.01708*((Tmax$band1-Tmin$band1)^0.5)*(Tmed$band1+17.8)*DiasMes[month]
 	img
@@ -20,8 +17,9 @@ petHgsm= function(Tmin, Tmax, Tmed, Rad, month){
 # PURPOSE:
 # INPUTS:
 # OUTPUTS:
+# CHANGES: 27/01/2010 - bug en el calculo del indice de Rad (implica reescritura de codigo)
 # CHANGES: 20/04/2010 - cambio de parametro date por monthIni
-# CHANGES: 20/04/2010 - bug en el calculo del indice de Rad (implica reescritura de codigo)
+# TODO: introducir el calculo de RAD en Etp ¿seguro? si, si RAD no esta calcularlo, si esta usarlo
 ###############################################
 batchPetHgsm= function(monthIni,Tmin,Tmax,Tmed,Rad,outFl,...) {
 	# comprobacion de los parametros
@@ -31,8 +29,7 @@ batchPetHgsm= function(monthIni,Tmin,Tmax,Tmed,Rad,outFl,...) {
 	}
 	else stop('Tmax,Tmin,Tmed must be of the same length')
 	
-	DiasMes=c(31,28,31,30,31,30,31,31,30,31,30,31)
-	NumMes=c('00','01','02','03','04','05','06','07','08','09','10','11','12')
+	#DiasMes=c(31,28,31,30,31,30,31,31,30,31,30,31)	
 	
 	#Asignamos mesRad
 	mesRad=monthIni

@@ -1,18 +1,14 @@
 ###############################################
-#
 # NAME: rueObsMe
 # PURPOSE:
 #     Reads n ndvi files and n rainfall grid files
 #     Then Calculate the RueObsMed grid.
-#
 # INPUTS:
 #       rainFl: File names list of rainfall grid 
 #       viFl: File names list of vegetation index grid 
 #       silent: logical Flag; if TRUE, comments outputs are supressed
-
 # OUTPUTS:
 #       Return RueObsMe as a SpatialGridDataFrame/SpatialPixelDataframe class. 
-
 rueObsMe = function(rainFl, viFl, silent=FALSE) {
 
     if (length(rainFl)!=length(viFl)) stop('rainFl & viFl must have the same length')
@@ -330,6 +326,7 @@ m=faux$band1
     if (!silent) close(pb)
     print(summary(faux))
     faux
+	plot()
 }
 
 

@@ -6,10 +6,11 @@
 # CHANGES: 20/04/2010 - bug en el computo de Lat
 # CHANGES: 20/04/2010 - cambio en el computo de dia
 # CHANGES: 20/04/2010 - quitar valor por defecto de day
+# TODO: comprobar que sea latlong
+# TODO: Justificar el 898
+# TODO: ampliar para calculo simplificado de la FAO
 ###############################################
-solarRad = function (img, day) {
-	
-	#comprobar que sea latlong
+solarRad = function (img, day) {	
 	#	
 	DTOR=0.0174533 #cte de grados a radianes
 	
@@ -45,6 +46,7 @@ solarRad12M = function (img, outFl, ...) {
 	if (length(outFl)!=12) stop('Fl must be 12 file names')
 	
 	# valor juliano del dia 15 de cada mes
+	#TODO: comprobarlo
 	DDA=c(15,45,75,106,136,167,197,228,259,289,320,350)
 	
 	for (i in 1:12) writeGDAL(solarRad(img,DDA[i]),outFl[i],...)

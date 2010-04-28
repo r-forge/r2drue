@@ -92,8 +92,7 @@ rgf.when = function (inFl,ref,order='FIRST',silent=FALSE) {
 # PURPOSE:
 # INPUTS:
 # OUTPUTS:
-# CHANGES:	28/01/2010 	- Bug en el conteo del % realizado para operaciones no acumulativas
-#				- 
+# CHANGES:	27/01/2010 	- Bug en el conteo del % realizado para operaciones no acumulativas
 ###############################################
 
 rgf.summary = function(inFl,outFl,step=length(inFl),fun='SUM',silent=FALSE,...) {
