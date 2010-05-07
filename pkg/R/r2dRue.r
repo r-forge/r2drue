@@ -1,4 +1,258 @@
 ###############################################
+# NAME: create2dRueConfig
+# PURPOSE:
+# INPUTS:
+# OUTPUTS:
+#       Return the name of a 2dRue .conf file 
+create2dRueConfig = function(conf='') {
+	quest=c(
+		'comment','Comment about this ejecution?:',date(),
+		'mesHidro','Mes de comienzo del año hidrologico (1-12) ?:','',
+		'acum','nº de meses de acumulacion','',
+		'viGroup','vi raster group?:','',
+		'raingroup','rain raster group?:','',
+		'stime','start time of the series (mm/yyyy)?:','',
+		'petGroup','ETP group or blank if you want create?: ','',
+		'tmaxGroup','Tmax raster group?:','',
+		'tmedGroup','Tmed raster group?:','',
+		'tminGroup','Tmin raster group?:','',
+		'radGroup','Extraterrestial solar radiation raster group?:','',
+		'fini','año inicial del anakisis?:','',
+		'fend','año final del sanalisis?:','',
+		'driver','tipo de fich de salida','RST',
+		'flag','flag value','-1',
+		'action','Proceder con el monitoring(m), assesment(a), ambos(b), ninguno(n)?:','b',
+		'fileName','Nombre de este archivo?:', paste('rue',format(Sys.time(), "%Y%m%d%H%M"),'.conf',sep='')
+		)
+	quest=matrix(quest,ncol=3, byrow=TRUE, dimnames=list(NULL,c('var','question','defaultvalue')))
+	v=as.data.frame(t(quest[,3]),stringsAsFactor=F)
+	names(v)=quest[,1]		
+	nq=nrow(quest)
+	
+	#err=try(rue=readIniFile(conf),TRUE)
+	#if (class(err)=='try-error') {stop('generer nuevo')}
+	for (i in 1:nq) {
+		aux=readline(paste(quest[i,2],quest[i,3]))
+		if (aux!='') v[i]=aux
+	}
+	
+	conffile=as.vector(v$fileName)	
+	write.table(t(v[-nq]),conffile,sep='=',quote=F,col.names=F)
+	conffile	
+}
+
+###############################################
+# NAME: checkConf
+# PURPOSE:
+#     Read an 2dRue configuration file and check the inputs.
+#     
+# INPUTS:
+#       conf: config file. 
+# OUTPUTS:
+#       boolean TRUE if all the options ar valid and the analisys can be done.
+#		FALSE if any options is erroneus or incongruent
+confChk=function (filename){
+	
+	checkgroup=function(rgffile){		
+		g=rgf.read(rgffile)		
+		cat('CHECKING ',rgffile,'\nHead of',rgffile,head(g),'...', fill=TRUE)		
+		pb =txtProgressBar(min=0,max=length(g),char='*',width=20,style=3)
+		aux=GDALinfo(g[1],silent=TRUE)		
+		for (i in g) { 
+			aux2=GDALinfo(i,silent=TRUE)
+			if (any(aux!=aux2)) stop(paste('incongruent series in file',i))
+			setTxtProgressBar(pb, getTxtProgressBar(pb)+1)			
+		}		
+	}
+	
+	checkgroups=function(rgffile1,rgffile2){		
+		g1=rgf.read(rgffile1)
+		g2=rgf.read(rgffile2)
+		cat('CHECKING spatial and time congruency',rgffile1,rgffile2,'\n')
+		aux1=GDALinfo(g1[1],silent=TRUE)
+		aux2=GDALinfo(g2[1],silent=TRUE)
+		#TODO: checkear no solo col&row si no el resto de parametros 
+		if ((any(aux1[1:2]!=aux2[1:2])) || (length(aux1)!=length(aux2))) {stop('incongruent series')}		
+	}
+	
+	buildpet=function(filename){
+		o=readIniFile(filename)
+		tmin=rgf.read(o$tmin)
+		tmax=rgf.read(o$tmax)
+		tmed=rgf.read(o$tmed)
+		checkgroup(tmin)
+		checkgroup(tmax)
+		checkgroup(tmed)
+		checkgroups(tmin,tmax)
+		checkgroups(tmin,tmed)
+		if (o$radgroup!='') {rad=rgf.read(o$radgroup)}
+		else {
+			dir.create(paste(o$pout,'/rad',sep=''))
+			rad=paste(o$pout,'/rad/rad',1:12,'.',o$driver)
+			img=readGDAL(tmin[1])
+			solarRad12M(img,aux,drivername=o$driver,mvFlag=o$flag)
+		}
+		batchPetHgsm(o$mesini,tmin,tmax,tmed,rad)}
+	}
+	
+	
+	########################## Check Start
+	aux=readIniFile(filename)
+	o=as.data.frame(t(aux[,3]),stringsAsFactors=FALSE)
+	names(o)=aux[,2]
+	#check output directory
+	if (file.access(o$pout,2)==-1) stop('Output directory not accesible',o$pout)
+	#check meshidro
+	if (!(o$meshidro %in% 1:12)) stop('mes hidro must be betwhen 1:12')
+	#check nacum
+	if (!(o$nacum %in% 1:12)) stop('nacum must be betwhen 1:12')
+	#check driver
+	isSupportedGDALFormat(o$driver)
+	#check mvFlag is a number	
+	#check that groups are temporaly and spatialy coherents	
+	checkgroup(o$vigroup)
+	checkgroup(o$raingroup)
+	checkgroups(o$vigroup,o$raingroup)
+	#build ETP if needed
+	if (o$petgroup=='') {
+		aux=getwd()
+		setwd()
+		dir.create(paste(o$pout,'/PET',sep=''))
+		o$petgroup=rgf.create(o$pout,'PET/')
+		buildpet(o)
+	#check that groups are temporaly and spatialy coherents
+	checkgroup(o$petgroup)
+	checkgroups(o$vigroup,o$petgroup)
+	
+	
+	
+	
+	
+	
+	
+	#check vigroup
+	#check vigroup
+	#check vigroup
+	#check vigroup
+	#check vigroup
+	#check vigroup
+	#check vigroup
+	#check petgroup or generate
+	
+}
+
+###############################################
+# NAME: makePet
+# PURPOSE:
+# INPUTS:
+# OUTPUTS:
+makePet = function(conf) {
+	tmin=o$tmin
+	tmax=o$tmax
+	tmed=o$tmed
+	if (o$radgroup==''){
+		aux=paste(o$pout,'pet/rad/rad',1:12,'.',o$driver)
+		
+		solarRad12M()}
+	batchPetHgsm(o$mesini,o$tmin,o$tmax,o$tmed,o$rad)}
+	
+}
+	
+
+
+###############################################
+# NAME: assestment
+# PURPOSE:
+# INPUTS:
+# OUTPUTS:
+assestment = function(conf) {
+	o=readIniFile(conf)
+	vi=rgf.read(o$vigroup)
+	rain=rgf.read(o$raingroup)	
+	pet=rgf.read(o$petgroup)
+	#Make Indices 
+	rueMe=rueObsMe(o$raingroup,o$vigroup)
+	writeGDAL(rueMe,'rueMed.rst',drivername=o$driver,mvFlag=o$flag)	
+	rueEx=rueObsEx(o$raingroup,o$vigroup,o$preraingroup,nMonths=o$acum)
+	writeGDAL(rueEx,'rueEx.rst',drivername=o$driver,mvFlag=o$flag)	
+	iaMe=aiObsMe(o$raingroup,o$petgroup)
+	writeGDAL(iaMe,'iaMed.rst',drivername=o$driver,mvFlag=o$flag)	
+	iaEx=aiObsEx(o$raingroup,o$vigroup,o$preraingroup,o$prepetgroup,nMonths=o$acum)	
+	writeGDAL(iaEx,'iaEx.rst',drivername=o$driver,mvFlag=o$flag)	
+}
+	
+
+
+###############################################
+# NAME: monitoring
+# PURPOSE:
+# INPUTS:
+# OUTPUTS:
+monitoring = function(conf) {
+	o=readIniFile(conf)
+	#MAKE ndvi SUMMARIES BY HIDROLOGIC YEARS
+	#TODO: poner bien la extenxion del driver
+	annualVis=paste(o$pout,'vi',o$yini,o$yend,'.',o$driver,sep='')
+	rgf.summary(o$vigroup,annualVis,step=12,fun='MEAN',drivername=o$driver,mvFlag=o$flag)
+	
+	#make aiObsMed by hidrologic years
+	annualIaMes=paste(o$pout,'iaMed',o$yini,o$yend,'.',o$driver,,sep='')
+	n=length(annualiaMe)	
+	for (i in 0:(n-1)) {
+		etp12=o$petgroup[(1:12)+i*12]
+		rain12=o$raingroup[(1:12)+i*12]
+		aiMe=aiObsMe(rain12,etp12)
+		writeGDAL(aiMe,annualIaMes[i+1],drivername=o$driver,mvFlag=o$flag)
+	}
+	
+	#make annual time files
+	annualTimes=paste(o$pout,'time',o$yini,o$yend,'.',o$driver,,sep='')
+	aux=readGDAL(annualVis[1])	
+	for (i in 0:(n-1)) {
+		aux$band1=i+o$yini
+		writeGDAL(aux,annualTimes[i+1],drivername=o$driver,mvFlag=o$flag)
+	}
+	#make step by step regresion
+	aux=c('f1','f2','f3','f4','f5','f6','f7')
+	aux=paste(o$pout,aux,'.',o$driver,sep='')
+	regStepRaster(annualVis,annualTime,annualIaMes,aux,drivername=o$driver,mvFlag=o$flag)
+}
+
+	
+###############################################
+# NAME: r2dRueWiz
+# PURPOSE:
+#     Read an 2dRue configuration file and perform actions acordely 
+#     Caln calculate the monitoring, the assesment, both or none, acordely with the input.
+# INPUTS:
+#       conf: config file. If none is provided, it will be create through interactive questions to the user 
+#       overwrite: Logical flag. When overwrite is TRUE, none of the existing files will be replaced by new outputs, forcing to stop the proccess if necessary. 
+#       verbose: level of log detail
+# OUTPUTS:
+#       r2dRue wiz is a procedure that can produced all the output involved in r2dRue analisys.
+#		It will be created a log file named as the config file but with its extension turned to .log
+r2dRueWiz = function(conf, overwrite=FALSE, verbose=0) {
+	if (conf=='')  {
+		TmpConfig=createConfig()
+		r2dRueWiz(tmpConfig,overwrite,verbose)
+	} 
+	else {				
+		confChk(conf)
+		o=readIniFile(conf)
+		switch(o$action,
+			'm' = monitoring(config),
+			'a' = assesment(config),
+			'b' = {monitoring(config)
+				   assesment(config)
+				})
+		Save(log,conf.log)
+	}
+}
+	
+
+
+
+###############################################
 # NAME: rueObsMe
 # PURPOSE:
 #     Reads n ndvi files and n rainfall grid files
@@ -503,7 +757,7 @@ regStepDF=function (X){
 	dimX=dim(X)[1]
 	cols=max(X[,4])
 	#quitar casos con algun NA
-	#--------------MIRAR-------------esto puede originar que algun pixel pierda alguna banda, pero no todas!!!
+	#TODO: esto puede originar que algun pixel pierda alguna banda, pero no todas!!!
 	X=na.omit(X)
 	ndimX=dim(X)[1]
 	index=unique(X[,4])
