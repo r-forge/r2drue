@@ -108,7 +108,7 @@ confChk=function (filename){
 	aux=readIniFile(filename)
 	o=as.data.frame(t(aux[,3]),stringsAsFactors=FALSE)
 	names(o)=aux[,2]
-	
+	#check / in paths
 	as.data.frame(t(sub('/$','',o[1,])),stringsAsFactors=FALSE) #quitar / de cualquier cadena que lo tuviera
 	#check output directory		
 	if (!file_test('-d',o$pout)) stop('Output directory not accesible',o$pout)
@@ -137,9 +137,46 @@ confChk=function (filename){
 	}
 	#check that groups are temporaly and spatialy coherents
 	checkgroup(o$petgroup)
-	checkgroups(o$vigroup,o$petgroup)	
+	checkgroups(o$vigroup,o$petgroup)
+	#check ini and end years
+	if (!(o$yend>=o$yini+3)) stop('must have at least 3 years to do a regresion')
+	
+	#calculo de meses previos necesarios
+	rgf.summary(vis,'maxndvi.rst',fun='MAX')
+	maxvi=readGDAL('maxvi.rst')
+	whenvi=rgf.when(vis,maxvi)
+	#calculo de meses previos necesarios 
+	nmonthsneeded=nMonths-min(maxvi$band1)+1 # ej: 10 - 1 + 1 para 10 meses de acum con maximo VI en primer mes...
+	if (nmonthsneeded<0) nmonthsneeded=0
+	h=hist(whenvi,nclass=max(whenvi$band1))
+	#return
+	o
 }
 
+###############################################
+# NAME: assestment
+# PURPOSE:
+# INPUTS:
+# OUTPUTS:
+readConfigFile=function (conf) {
+	o=readIniFile(conf)
+	rains=rgf.read(o$raingroups)
+	Hidroini=o$MonthsHidro
+	yiniS=o$stime
+	yini=o$yearini
+	yend=o$yearend
+	o$rains=rains
+	o$pets
+	o$prerains
+	o$prepets
+	o$vis
+	o$yini
+	o$yfin
+	o$nMonths
+	
+	
+	
+}
 
 ###############################################
 # NAME: assestment
@@ -147,18 +184,20 @@ confChk=function (filename){
 # INPUTS:
 # OUTPUTS:
 assestment = function(conf) {
-	o=readIniFile(conf)
-	vi=rgf.read(o$vigroup)
-	rain=rgf.read(o$raingroup)	
-	pet=rgf.read(o$petgroup)
+	o=readConfigFile(conf)
+	vis=rgf.read(o$vigroup)
+	rains=rgf.read(o$raingroup)	
+	pets=rgf.read(o$petgroup)
+	prerains=paste()
+	prepets=paste()
 	#Make Indices 
-	rueMe=rueObsMe(o$raingroup,o$vigroup)
+	rueMe=rueObsMe(rains,vis)
 	writeGDAL(rueMe,'rueMed.rst',drivername=o$driver,mvFlag=o$flag)	
-	rueEx=rueObsEx(o$raingroup,o$vigroup,o$preraingroup,nMonths=o$acum)
+	rueEx=rueObsEx(rains,vis,prerains,nMonths=o$acum)
 	writeGDAL(rueEx,'rueEx.rst',drivername=o$driver,mvFlag=o$flag)	
-	iaMe=aiObsMe(o$raingroup,o$petgroup)
+	iaMe=aiObsMe(rains,pets)
 	writeGDAL(iaMe,'iaMed.rst',drivername=o$driver,mvFlag=o$flag)	
-	iaEx=aiObsEx(o$raingroup,o$vigroup,o$preraingroup,o$prepetgroup,nMonths=o$acum)	
+	iaEx=aiObsEx(rains,vis,prerains,prepets,nMonths=o$acum)	
 	writeGDAL(iaEx,'iaEx.rst',drivername=o$driver,mvFlag=o$flag)	
 }
 
@@ -173,12 +212,12 @@ monitoring = function(conf) {
 	o=readIniFile(conf)
 	#MAKE ndvi SUMMARIES BY HIDROLOGIC YEARS
 	#TODO: poner bien la extenxion del driver
-	annualVis=paste(o$pout,'vi',o$yini,o$yend,'.',o$driver,sep='')
+	annualVis=paste(o$pout,'vi',o$yini:o$yend,'.',o$driver,sep='')
 	rgf.summary(o$vigroup,annualVis,step=12,fun='MEAN',drivername=o$driver,mvFlag=o$flag)
 	
 	#make aiObsMed by hidrologic years
-	annualIaMes=paste(o$pout,'iaMed',o$yini,o$yend,'.',o$driver,,sep='')
-	n=length(annualiaMe)	
+	annualIaMes=paste(o$pout,'iaMed',o$yini:o$yend,'.',o$driver,sep='')
+	n=length(annualIaMes)	
 	for (i in 0:(n-1)) {
 		etp12=o$petgroup[(1:12)+i*12]
 		rain12=o$raingroup[(1:12)+i*12]
@@ -187,7 +226,7 @@ monitoring = function(conf) {
 	}
 	
 	#make annual time files
-	annualTimes=paste(o$pout,'time',o$yini,o$yend,'.',o$driver,,sep='')
+	annualTimes=paste(o$pout,'time',o$yini:o$yend,'.',o$driver,sep='')
 	aux=readGDAL(annualVis[1])	
 	for (i in 0:(n-1)) {
 		aux$band1=i+o$yini
@@ -196,7 +235,7 @@ monitoring = function(conf) {
 	#make step by step regresion
 	aux=c('f1','f2','f3','f4','f5','f6','f7')
 	aux=paste(o$pout,aux,'.',o$driver,sep='')
-	regStepRaster(annualVis,annualTime,annualIaMes,aux,drivername=o$driver,mvFlag=o$flag)
+	regStepRaster(annualVis,annualTimes,annualIaMes,aux,drivername=o$driver,mvFlag=o$flag)
 }
 
 
@@ -836,5 +875,6 @@ regStepDF=function (X){
 	# ----------devuelve vector completo para debug
 	#round(c(R12, R1Y, R2Y, DFS, TS12, TS1Y, TS2Y, PrX1X2,PrX1Y,PrX2Y,BPY1, BPY2, BY1, BY2, A, R2Y12, DFNUM, DFDEN, F,PrR2Y12, V2, DFNUM2, F2,PrR2Y12i, DFM, TM1, TM2, TMP1, TMP2),6)
 }
+
 
 
