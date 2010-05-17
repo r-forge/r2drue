@@ -11,23 +11,23 @@ variable raster group o archivo de tipo raster group
 (Descarto dar un path, ya que no se como enumerar los archivos que hay dentro)
 "
 	quest=c(
-			'comment','Comment about this ejecution?:',date(),
-			'mesHidro','Mes de comienzo del año hidrologico (1-12) ?:','',
-			'acum','nº de meses de acumulacion','',
-			'viGroup','vi raster group?:','',
-			'raingroup','rain raster group?:','',
-			'stime','start time of the series (mm/yyyy)?:','',
-			'petGroup','ETP group or blank if you want create?: ','',
+			'comment','Description of this run?:',date(),
+			'mesHidro','Start month of hydrological year [1-12]?:','',
+			'acum','Number of acummulation months for preceding rain:?','',
+			'viGroup','Vegetation Index raster group?:','',
+			'raingroup','Precipitation raster group?:','',
+			'stime','Start date of the series [mm/yyyy]?:','',
+			'petGroup','PET raster group or leave blank to create it?: ','',
 			'tmaxGroup','Tmax raster group?:','',
 			'tmedGroup','Tmed raster group?:','',
 			'tminGroup','Tmin raster group?:','',
 			'radGroup','Extraterrestial solar radiation raster group?:','',
-			'fini','año inicial del anakisis?:','',
-			'fend','año final del sanalisis?:','',
-			'driver','tipo de fich de salida','RST',
-			'flag','flag value','-1',
-			'action','Proceder con el monitoring(m), assesment(a), ambos(b), ninguno(n)?:','b',
-			'fileName','Nombre de este archivo?:', paste('rue',format(Sys.time(), "%Y%m%d%H%M"),'.conf',sep='')
+			'fini','Start year of this run?:','',
+			'fend','End year of this run?:','',
+			'driver','GIS format for output images','RST',
+			'flag','Missing value','-999',
+			'action','Proceed with monitoring(m), assesment(a), both(b), none(n)?:','b',
+			'fileName','Name of this parameter file?:', paste('rue',format(Sys.time(), "%Y%m%d%H%M"),'.conf',sep='')
 	)
 	quest=matrix(quest,ncol=3, byrow=TRUE, dimnames=list(NULL,c('var','question','defaultvalue')))
 	v=as.data.frame(t(quest[,3]),stringsAsFactor=F)
@@ -603,85 +603,6 @@ aiObsEx <-
 	plot()
 }
 
-
-###############################################
-# NAME: 
-# PURPOSE:
-# INPUTS:
-# OUTPUTS:
-###############################################
-regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
-	#comprueba condiciones de error
-	if (length(outFl)!=7) stop('outFl may be a list of seven filenames')
-	if (2*length(ndviFl)!=(length(timeFl)+length(aridFl))) stop('ndviFl, tempFl and aridFl, should have equal length')
-	
-	#Stack by pixel the filelists
-	tmpFn1=tempfile()
-	tmpFn2=tempfile()
-	tmpFn3=tempfile()
-	tmpFn4=tempfile()	#fichero temporal para almacenar resultados de la regresion paso a paso
-	rasterStack(ndviFl,tmpFn1,interleave='BIP')
-	rasterStack(timeFl,tmpFn2,interleave='BIP')
-	rasterStack(aridFl,tmpFn3,interleave='BIP')
-	
-	#image info
-	bands=length(ndviFl)	
-	rows=GDALinfo(ndviFl[1])[1]
-	cols=GDALinfo(ndviFl[1])[2]
-	
-	#calculo tamyear del buffer de lectura para que lea bloques de 5000 elementos aproximadamente
-	#este es un size optimo para la funcion 'by'
-	linesToRead=ceiling(5000/cols)
-	#num de bloques de size LinesToRead en la imagen
-	nblocks=ceiling(rows/linesToRead) 
-	
-	if (!silent) pb =txtProgressBar(min=0,max=nblocks,char='*',width=20,style=3)
-	
-	depf=file(tmpFn1,'rb')
-	in1f=file(tmpFn2,'rb')	
-	in2f=file(tmpFn3,'rb')
-	outf=file(tmpFn4,'w')
-	
-	#por cada 
-	for (i in 1:nblocks) {
-		#no sobrepasar fin de fichero
-		if (i*linesToRead>rows) {linesToRead=i*linesToRead-rows}
-		#leer un linestoread de lineas del fichero de entrada
-		Y=readBin(depf,numeric(),cols*bands*linesToRead,size=4)
-		X1=readBin(in1f,numeric(),cols*bands*linesToRead,size=4)
-		X2=readBin(in2f,numeric(),cols*bands*linesToRead,size=4)
-		
-		df=cbind(Y,X1,X2,pixel=rep(1:(linesToRead*cols),each=bands))
-		rm(Y,X1,X2)
-		
-		#calcular regresion multiple
-		cn=regStepDF(df)
-		
-		#escribir salida
-		write.table(round(cn,4),append=TRUE,sep='\t',file=outf,col.names=FALSE,row.names=FALSE)
-		#actualizo progressbar
-		setTxtProgressBar(pb,i)
-	}
-	close(depf)
-	close(in1f)
-	close(in2f)
-	flush(outf)
-	close(outf)
-	close(pb)
-	
-	aux1=read.table(tmpFn4,header=FALSE,sep='\t')
-	aux2=readGDAL(ndviFl[1],silent=TRUE)
-	print('writing output files')
-	for (i in 1:7) {
-		aux2$band1=aux1[,i]
-		writeGDAL(aux2,outFl[i],drivername='RST',mvFlag=0)
-	}	
-	file.remove(tmpFn1)	
-	file.remove(tmpFn2)	
-	file.remove(tmpFn3)	
-	file.remove(tmpFn4)	
-}
-
 ###############################################
 # NAME: 
 # PURPOSE:
@@ -766,6 +687,83 @@ rasterStack=function(inFl,outFN,asc=FALSE,zip=FALSE,dec=3,interleave='BIP',silen
 	}
 }
 
+###############################################
+# NAME: 
+# PURPOSE:
+# INPUTS:
+# OUTPUTS:
+###############################################
+regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
+	#comprueba condiciones de error
+	if (length(outFl)!=7) stop('outFl may be a list of seven filenames')
+	if (2*length(ndviFl)!=(length(timeFl)+length(aridFl))) stop('ndviFl, tempFl and aridFl, should have equal length')
+	
+	#Stack by pixel the filelists
+	tmpFn1=tempfile()
+	tmpFn2=tempfile()
+	tmpFn3=tempfile()
+	tmpFn4=tempfile()	#fichero temporal para almacenar resultados de la regresion paso a paso
+	rasterStack(ndviFl,tmpFn1,interleave='BIP')
+	rasterStack(timeFl,tmpFn2,interleave='BIP')
+	rasterStack(aridFl,tmpFn3,interleave='BIP')
+	
+	#image info
+	bands=length(ndviFl)	
+	rows=GDALinfo(ndviFl[1])[1]
+	cols=GDALinfo(ndviFl[1])[2]
+	
+	#calculo tamyear del buffer de lectura para que lea bloques de 5000 elementos aproximadamente
+	#este es un size optimo para la funcion 'by'
+	linesToRead=ceiling(5000/cols)
+	#num de bloques de size LinesToRead en la imagen
+	nblocks=ceiling(rows/linesToRead) 
+	
+	if (!silent) pb =txtProgressBar(min=0,max=nblocks,char='*',width=20,style=3)
+	
+	depf=file(tmpFn1,'rb')
+	in1f=file(tmpFn2,'rb')	
+	in2f=file(tmpFn3,'rb')
+	outf=file(tmpFn4,'w')
+	browser()
+	#por cada bloque 
+	for (i in 1:nblocks) {
+		#no sobrepasar fin de fichero
+		if (i*linesToRead>rows) {linesToRead=i*linesToRead-rows}
+		#leer un linestoread de lineas del fichero de entrada
+		Y=readBin(depf,numeric(),cols*bands*linesToRead,size=4)
+		X1=readBin(in1f,numeric(),cols*bands*linesToRead,size=4)
+		X2=readBin(in2f,numeric(),cols*bands*linesToRead,size=4)
+		
+		df=cbind(Y,X1,X2,pixel=rep(1:(linesToRead*cols),each=bands))
+		rm(Y,X1,X2)
+		
+		#calcular regresion multiple
+		cn=regStepDF(df)
+		
+		#escribir salida
+		write.table(round(cn,4),append=TRUE,sep='\t',file=outf,col.names=FALSE,row.names=FALSE)
+		#actualizo progressbar
+		setTxtProgressBar(pb,i)
+	}
+	close(depf)
+	close(in1f)
+	close(in2f)
+	flush(outf)
+	close(outf)
+	close(pb)
+	
+	aux1=read.table(tmpFn4,header=FALSE,sep='\t')
+	aux2=readGDAL(ndviFl[1],silent=TRUE)
+	print('writing output files')
+	for (i in 1:7) {
+		aux2$band1=aux1[,i]
+		writeGDAL(aux2,outFl[i],drivername='RST',mvFlag=0)
+	}	
+	file.remove(tmpFn1)	
+	file.remove(tmpFn2)	
+	file.remove(tmpFn3)	
+	file.remove(tmpFn4)	
+}
 
 ###############################################
 # NAME: 
@@ -777,8 +775,10 @@ regStepDF=function (X){
 	dimX=dim(X)[1]
 	cols=max(X[,4])
 	#quitar casos con algun NA
-	#TODO: esto puede originar que algun pixel pierda alguna banda, pero no todas!!!
-	X=na.omit(X)
+	aux=unique(X[is.na(X[,1]*X[,2]*X[,3]),4]) #lista de pixel con algun dato a NA
+	X[X[,4] %in% aux,1]=NA	
+	X=na.omit(X) #esto puede originar que algun pixel pierda alguna banda, pero no todas!!!
+
 	ndimX=dim(X)[1]
 	index=unique(X[,4])
 	#si todo el dataframe es iniutilizable
@@ -786,7 +786,8 @@ regStepDF=function (X){
 	
 	#num de bandas en la matriz
 	N=sum(X[,4]==X[,4][1])
-	ncases=ceiling(ndimX/N)
+	ncases=length(index)
+	
 	
 	#print(paste('dimX:',dimX,' dimXna:',ndimX,' ncases:',ncases))
 	
