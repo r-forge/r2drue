@@ -58,8 +58,10 @@ readIniFile <- function(filename, token='=', commenttoken=';') {
 	}
 	
 	colnames(ini) <- c("section", "name", "value")
-	
-	return(ini)
+	########### como dataframe
+	out=as.data.frame(t(ini[,3]),stringsAsFactors=FALSE)
+	names(out)=ini[,2]
+	return(out)
 }
 
 .gdalWriteFormats <- function() {
@@ -70,7 +72,7 @@ readIniFile <- function(filename, token='=', commenttoken=';') {
 }
 
 
-.isSupportedGDALFormat <- function(dname) {
+isSupportedGDALFormat <- function(dname) {
 	if (!require(rgdal)) { stop() }
 	gd <- .gdalWriteFormats()
 	res <- dname %in% gd[,1]

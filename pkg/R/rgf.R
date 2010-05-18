@@ -9,6 +9,9 @@ rgf.create = function(prefix,suffix='',ini,fin=ini,monthini=1,output) {
 	if (missing(ini)) stop('ini parameter is missing')
 	if (missing(fin)) {rgf.create(prefix,suffix,ini,ini,monthini,output)} 
 	else {
+		ini=as.numeric(ini)
+		fin=as.numeric(fin)
+		monthini=as.numeric(monthini)
 		if (monthini>1) fin=fin+1 
 		rg=paste(prefix,rep(ini:fin,each=9),'0',1:9,suffix,sep='')
 		rg=c(rg,paste(prefix,rep(ini:fin,each=3),10:12,suffix,sep=''))
