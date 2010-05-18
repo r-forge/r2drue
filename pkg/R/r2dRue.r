@@ -5,47 +5,47 @@
 # OUTPUTS:
 # Return the name of a 2dRue .conf file 
 create2dRueConfig = function(conf='') {
-	text="si es un nombre de archivo rgf, tenemos que introducir como parametro tambien el mes de comienzo de la serie.
-Si es una variable hay que crearla antes pero tambien necesito el mesini, solo si me decido a hacer objetos tipo timerastergroup, no necesito ese dato.
-variable raster group o archivo de tipo raster group
-(Descarto dar un path, ya que no se como enumerar los archivos que hay dentro)
-"
+	text="##########################################\n############# r2dRue Wizard ##############\n#                                        #\nR2dRue Wizard te permite crear estrsya ñldkfj gñdlkfj gñsdkfj gñsdkfj gsñdkfj gñsldkfj 
+       gñsdlkfj gñsdlkfjg ñsdlkfjg ñsdlkfj gñsdlkfj ñslkdj fñglksdj\n\n"
+	
 	quest=c(
 			'comment','Description of this run?:',date(),
 			'mesHidro','Start month of hydrological year [1-12]?:','',
 			'acum','Number of acummulation months for preceding rain:?','',
+			'pOut','Output directory:?','',
 			'viGroup','Vegetation Index raster group?:','',
-			'raingroup','Precipitation raster group?:','',
-			'stime','Start date of the series [mm/yyyy]?:','',
+			'rainGroup','Precipitation raster group?:','',
+			'sTime','Start date of the series [mm/yyyy]?:','',
 			'petGroup','PET raster group or leave blank to create it?: ','',
 			'tmaxGroup','Tmax raster group?:','',
 			'tmedGroup','Tmed raster group?:','',
 			'tminGroup','Tmin raster group?:','',
 			'radGroup','Extraterrestial solar radiation raster group?:','',
-			'fini','Start year of this run?:','',
-			'fend','End year of this run?:','',
+			'fIni','Start year of this run?:','',
+			'fEnd','End year of this run?:','',
 			'driver','GIS format for output images','RST',
 			'flag','Missing value','-999',
 			'action','Proceed with monitoring(m), assesment(a), both(b), none(n)?:','b',
 			'fileName','Name of this parameter file?:', paste('rue',format(Sys.time(), "%Y%m%d%H%M"),'.conf',sep='')
 	)
 	quest=matrix(quest,ncol=3, byrow=TRUE, dimnames=list(NULL,c('var','question','defaultvalue')))
-	v=as.data.frame(t(quest[,3]),stringsAsFactor=F)
-	names(v)=quest[,1]		
+	response=as.data.frame(t(quest[,3]),stringsAsFactor=F)
+	names(response)=quest[,1]		
 	nq=nrow(quest)
 	
 	#err=try(rue=readIniFile(conf),TRUE)
 	#if (class(err)=='try-error') {stop('generer nuevo')}
 	cat(rep('\n',times=200))
-	writeLines(strwrap(text,60))
+	cat(text)
+	#writeLines(strwrap(text,60))
 	flush.console()
 	for (i in 1:nq) {
 		aux=readline(paste(quest[i,2],quest[i,3]))
-		if (aux!='') v[i]=aux
+		if (aux!='') response[i]=aux
 	}
 	
-	conffile=as.vector(v$fileName)	
-	write.table(t(v[-nq]),conffile,sep='=',quote=F,col.names=F)
+	conffile=as.vector(response$fileName)	
+	write.table(t(response[-nq]),conffile,sep='=',quote=F,col.names=F)
 	conffile	
 }
 
@@ -63,7 +63,7 @@ confChk=function (filename){
 	
 	checkgroup=function(rgffile){		
 		g=rgf.read(rgffile)		
-		cat('CHECKING ',rgffile,'\nHead of',rgffile,head(g),'...', fill=TRUE)		
+		cat('CHECKING ',rgffile,'\nHead of',rgffile,'\n',head(g),'...', fill=TRUE)		
 		pb =txtProgressBar(min=0,max=length(g),char='*',width=20,style=3)
 		aux=GDALinfo(g[1],silent=TRUE)		
 		for (i in g) { 
@@ -71,6 +71,8 @@ confChk=function (filename){
 			if (any(aux!=aux2)) stop(paste('incongruent series in file',i))
 			setTxtProgressBar(pb, getTxtProgressBar(pb)+1)			
 		}		
+		close(pb)
+		cat('\n')
 	}
 	
 	checkgroups=function(rgffile1,rgffile2){		
@@ -111,35 +113,35 @@ confChk=function (filename){
 	#check / in paths
 	as.data.frame(t(sub('/$','',o[1,])),stringsAsFactors=FALSE) #quitar / de cualquier cadena que lo tuviera
 	#check output directory		
-	if (!file_test('-d',o$pout)) stop('Output directory not accesible',o$pout)
+	if (!file_test('-d',o$pOut)) stop('Output directory not accesible ',o$pOut)
 	#check meshidro
-	if (!(o$meshidro %in% 1:12)) stop('mes hidro must be between 1:12')
+	if (!(o$mesHidro %in% 1:12)) stop('mes hidro must be between 1:12')
 	#check nacum
-	if (!(o$nacum %in% 1:12)) stop('nacum must be between 1:12')
+	if (!(o$acum %in% 1:12)) stop('nacum must be between 1:12')
 	#check driver
-	isSupportedGDALFormat(o$driver)
+	.isSupportedGDALFormat(o$driver)
 	#check mvFlag is a number
-	if (!is.finite(as.numeric(o$mvflag))) stop('mvFlag not a number')	
+	if (!is.finite(as.numeric(o$flag))) stop('mvFlag not a number')	
 	#check that groups are temporaly and spatialy coherents	
-	checkgroup(o$vigroup)
-	checkgroup(o$raingroup)
-	checkgroups(o$vigroup,o$raingroup)
+	checkgroup(o$viGroup)
+	checkgroup(o$rainGroup)
+	checkgroups(o$viGroup,o$rainGroup)
 	#build ETP if needed
-	if (o$petgroup=='') {
+	if (o$petGroup=='') {
 		aux=getwd()
-		petdir=paste(o$pout,'/PET',sep='')
+		petDir=paste(o$pOut,'/PET',sep='')
 		#comprobar que existe 
-		if (file.access(petdir)==-1) {
-			if (!dir.create(petdir)) stop('no se puede crear petdir')
+		if (file.access(petDir)==-1) {
+			if (!dir.create(petDir)) stop('no se puede crear petdir')
 		}		
-		o$petgroup=rgf.create(o$pout,'PET/')
+		o$petGroup=rgf.create(o$pOut,'PET/',fIni,fEnd)
 		buildpet(o)
 	}
 	#check that groups are temporaly and spatialy coherents
-	checkgroup(o$petgroup)
-	checkgroups(o$vigroup,o$petgroup)
+	checkgroup(o$petGroup)
+	checkgroups(o$viGroup,o$petGroup)
 	#check ini and end years
-	if (!(o$yend>=o$yini+3)) stop('must have at least 3 years to do a regresion')
+	if (!(o$fEnd>=o$fIni+3)) stop('must have at least 3 years to do a regresion')
 	
 	#calculo de meses previos necesarios
 	rgf.summary(vis,'maxndvi.rst',fun='MAX')
@@ -172,10 +174,7 @@ readConfigFile=function (conf) {
 	o$vis
 	o$yini
 	o$yfin
-	o$nMonths
-	
-	
-	
+	o$nMonths	
 }
 
 ###############################################
@@ -189,10 +188,10 @@ assestment = function(conf) {
 	rains=rgf.read(o$raingroup)	
 	pets=rgf.read(o$petgroup)
 	prerains=paste()
-	prepets=paste()
+	prepets=paste()	
 	#Make Indices 
 	rueMe=rueObsMe(rains,vis)
-	writeGDAL(rueMe,'rueMed.rst',drivername=o$driver,mvFlag=o$flag)	
+	writeGDAL(rueMe,paste(pout,'rueMed.rst',sep=''),drivername=o$driver,mvFlag=o$flag)	
 	rueEx=rueObsEx(rains,vis,prerains,nMonths=o$acum)
 	writeGDAL(rueEx,'rueEx.rst',drivername=o$driver,mvFlag=o$flag)	
 	iaMe=aiObsMe(rains,pets)
@@ -690,7 +689,7 @@ rasterStack=function(inFl,outFN,asc=FALSE,zip=FALSE,dec=3,interleave='BIP',silen
 ###############################################
 # NAME: 
 # PURPOSE:
-# INPUTS:
+# INPUTS:regStepRaster(vi,y,ia,fl,drivername='RST',mvFlag=-1)
 # OUTPUTS:
 ###############################################
 regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
@@ -711,12 +710,15 @@ regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
 	bands=length(ndviFl)	
 	rows=GDALinfo(ndviFl[1])[1]
 	cols=GDALinfo(ndviFl[1])[2]
-	
-	#calculo tamyear del buffer de lectura para que lea bloques de 5000 elementos aproximadamente
+	browser()
+	#calculo size del buffer de lectura para que lea bloques de 5000 elementos aproximadamente
+	filelength=bands*rows*cols
 	#este es un size optimo para la funcion 'by'
-	linesToRead=ceiling(5000/cols)
-	#num de bloques de size LinesToRead en la imagen
-	nblocks=ceiling(rows/linesToRead) 
+	itemsToRead=trunc(500000/bands)	
+	#num de bloques de size itemsToRead
+	nblocks=ceiling(filelength/itemsToRead)
+	#tamaño del ultimo bloque
+	rest=filelength-(nblocks-1)*itemsToRead
 	
 	if (!silent) pb =txtProgressBar(min=0,max=nblocks,char='*',width=20,style=3)
 	
@@ -724,17 +726,17 @@ regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
 	in1f=file(tmpFn2,'rb')	
 	in2f=file(tmpFn3,'rb')
 	outf=file(tmpFn4,'w')
-	browser()
+	
 	#por cada bloque 
 	for (i in 1:nblocks) {
 		#no sobrepasar fin de fichero
-		if (i*linesToRead>rows) {linesToRead=i*linesToRead-rows}
+		if (i==nblocks) {itemsToRead=rest}
 		#leer un linestoread de lineas del fichero de entrada
-		Y=readBin(depf,numeric(),cols*bands*linesToRead,size=4)
-		X1=readBin(in1f,numeric(),cols*bands*linesToRead,size=4)
-		X2=readBin(in2f,numeric(),cols*bands*linesToRead,size=4)
+		Y=readBin(depf,numeric(),itemsToRead,size=4)
+		X1=readBin(in1f,numeric(),itemsToRead,size=4)
+		X2=readBin(in2f,numeric(),itemsToRead,size=4)
 		
-		df=cbind(Y,X1,X2,pixel=rep(1:(linesToRead*cols),each=bands))
+		df=cbind(Y,X1,X2,pixel=rep(1:(itemsToRead/bands),each=bands))
 		rm(Y,X1,X2)
 		
 		#calcular regresion multiple
@@ -742,6 +744,7 @@ regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
 		
 		#escribir salida
 		write.table(round(cn,4),append=TRUE,sep='\t',file=outf,col.names=FALSE,row.names=FALSE)
+
 		#actualizo progressbar
 		setTxtProgressBar(pb,i)
 	}
@@ -879,3 +882,5 @@ regStepDF=function (X){
 
 
 
+trace(confiChk,browser)
+r2dRueWiz('rue.conf')

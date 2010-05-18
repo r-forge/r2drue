@@ -27,8 +27,13 @@ rgf.create = function(prefix,suffix='',ini,fin=ini,monthini=1,output) {
 ###############################################
 
 rgf.read = function (inFl){
-	aux=as.vector(read.table(inFl)[,1])
-	if (!is.na(as.integer(aux[1]))) {aux=aux[-1]} #comprobar si hay un numero en la primera linea y eliminarlo
+	if (file.exist(inFl)) {
+		aux=as.vector(read.table(inFl)[,1])
+		if (!is.na(as.integer(aux[1]))) {aux=aux[-1]} #comprobar si hay un numero en la primera linea y eliminarlo		
+	} else {
+		aux=''
+		cat
+	}
 	aux
 }
 
