@@ -1,31 +1,146 @@
 ###############################################
+# NAME: r2dRueWiz
+# PURPOSE:
+#     Read an 2dRue configuration file and perform actions acordely 
+#     Caln calculate the monitoring, the assesment, both or none, acordely with the input.
+# INPUTS:
+#       conf: config file. If none is provided, it will be create through interactive questions to the user 
+#       overwrite: Logical flag. When overwrite is TRUE, none of the existing files will be replaced by new outputs, forcing to stop the proccess if necessary. 
+#       verbose: level of log detail
+# OUTPUTS:
+#       r2dRue wiz is a procedure that can produced all the output involved in r2dRue analisys.
+#		It will be created a log file named as the config file but with its extension turned to .log
+r2dRueWiz = function(conf='', overwrite=FALSE, verbose=0) {
+	if (conf=='')  {
+		TmpConfig=create2dRueConfigFile()
+		r2dRueWiz(TmpConfig,overwrite,verbose)
+	} 
+	else {				
+		o=createRunConfig(conf)
+		switch(o$acction,
+				'm' = monitoring(o),
+				'a' = assesment(o),
+				'b' = {	monitoring(o)
+					assesment(o)
+				})
+		Save(log,conf.log)
+	}
+}
+
+###############################################
+# NAME: assestment
+# PURPOSE: Lee un fo
+# INPUTS:
+# OUTPUTS:
+readConfigFile=function (conf) {	
+	co=list(
+			comment='',pOut='',mHidro='',acum='',viRgf='',rainRgf='',sYear='',sMonth='',
+			yIni='',yEnd='',driver='',flag='',acction='',
+			petRgf='',tmaxRgf='',tminRgf='',tmedRgf='',radRgf=''	
+	)
+	obligatorios=names(co)[1:13]
+	obligatoriosPet=names(co)[15:17]
+	f=readIniFile(conf)
+	co[names(f)]=f
+	if (any(co[obligatorios] == '')) stop(sprintf('Faltan parametros obligatorios en %s , check the conf file',conf))
+	if (co$petRgf == '') {
+		if (any(co[obligatoriosPet] == '')) stop(sprintf('Faltan parametros obligatorios para calculo de PET. Check the %s file',conf))
+	}
+	co
+}
+
+###############################################
+# NAME: createRunConfig
+# PURPOSE:
+#     crea una lista con la informacion necesaria para una ejecucion de 2dRue
+# INPUTS:
+#       conf: lista de configuracion basica 
+# OUTPUTS:
+createRunConfig=function (conf){
+	enteros=c('mHidro','acum','sYear','sMonth','yIni','yEnd','flag')
+	o=list(
+		#from config file
+		comment='',pOut='',mHidro='',acum='',viRgf='',rainRgf='',sYear='',sMonth='',
+		yIni='',yEnd='',driver='',flag='',acction='',petRgf='',tmaxRgf='',tminRgf='',tmedRgf='',radRgf='',
+		#calculated		
+		vi='',rain='',pet='',ppet='',prain='',rLength='',rIniDate='',rEndDate='',rDates='',rPreDates='',
+		svi='',srain='',spet='',sIniDate='',sEndDate='',sDates='',sLength='',
+		stmax='',stmin='',stmed='',srad=''
+	)
+	co=readConfigFile(conf)
+	o[names(co)]=co #copiar parametros from config file	
+	o[enteros]=as.integer(co[enteros]) #pasar a enteros 
+	
+	
+	o$svi=rgf.read(o$viRgf)
+	o$srain=rgf.read(o$rainRgf)
+	
+	o$sLength=length(o$svi)
+	o$sIniDate=as.Date(paste(o$sYear,o$sMonth,1,sep='/'))
+	o$sDates=seq(o$sIniDate,length.out=o$sLength,by='month')
+	o$sEndDate=o$sDates[o$sLength]
+	
+	o$rYears=o$yEnd-o$yIni
+	o$rLength=o$rYears*12	
+	o$rIniDate=as.Date(paste(o$yIni,o$mHidro,1,sep='/'))
+	o$rDates=seq(o$rIniDate,length.out=o$rLength,by='month')
+	o$rEndDate=o$rDates[o$rLength]
+		
+	o$rPreDates=seq(o$rIniDate,length.out=o$acum+1,by='-1 month')[-1]
+
+	if (!all(o$rDates %in% o$sDates)) stop('check start and initial dates')
+	if (!all(o$rPreDates %in% o$sDates)) stop('check start and initial dates')
+	
+	o$vi=o$svi[o$sDates %in% o$rDates]
+	o$rain=o$srain[o$sDates %in% o$rDates]
+	o$pet=o$spet[o$sDates %in% o$rDates]
+	o$ppet=o$spet[o$sDates %in% o$rPreDates]
+	o$prain=o$srain[o$sDates %in% o$rPreDates]
+	
+	
+	aux='\n'
+	aux=c(aux,'\n',sprintf('################### r2dRue RUN: %s',o$comment))
+	aux=c(aux,'\n',sprintf('Original data: %d images, from %s to %s',o$sLength,format(o$sIniDate,'%b/%Y'),format(o$sEndDate,'%b/%Y')))
+	aux=c(aux,'\n',sprintf('Analisys data: %d images, from %s to %s, %d Hidrological years',o$rLength,format(o$rIniDate,'%b/%Y'),format(o$rEndDate,'%b/%Y'),o$rYears))
+	aux=c(aux,'\n',sprintf('---------- Raster Group Info'))
+	aux=c(aux,'\n',sprintf('viRgf  : %s',strwrap(paste(head(o$vi,3),collapse=' '),60)))
+	aux=c(aux,'\n',sprintf('rainRgf: %s',paste(head(o$rain,3),collapse=' ')))
+	aux=c(aux,'\n',sprintf('petRgf : %s',paste(head(o$pet,3),collapse=' ')))
+	aux=c(aux,'\n',sprintf('----------------------------'))
+	cat(aux)
+	
+	o	
+}
+
+###############################################
 # NAME: create2dRueConfig
 # PURPOSE:
 # INPUTS:
 # OUTPUTS:
 # Return the name of a 2dRue .conf file 
-create2dRueConfig = function(conf='') {
+create2dRueConfigFile = function(conf='') {
 	text="##########################################\n############# r2dRue Wizard ##############\n#                                        #\nR2dRue Wizard te permite crear estrsya ñldkfj gñdlkfj gñsdkfj gñsdkfj gsñdkfj gñsldkfj 
        gñsdlkfj gñsdlkfjg ñsdlkfjg ñsdlkfj gñsdlkfj ñslkdj fñglksdj\n\n"
 	
 	quest=c(
 			'comment','Description of this run?:',date(),
-			'mesHidro','Start month of hydrological year [1-12]?:','',
+			'mHidro','Start month of hydrological year [1-12]?:','',
 			'acum','Number of acummulation months for preceding rain:?','',
 			'pOut','Output directory:?','',
-			'viGroup','Vegetation Index raster group?:','',
-			'rainGroup','Precipitation raster group?:','',
-			'sTime','Start date of the series [mm/yyyy]?:','',
-			'petGroup','PET raster group or leave blank to create it?: ','',
-			'tmaxGroup','Tmax raster group?:','',
-			'tmedGroup','Tmed raster group?:','',
-			'tminGroup','Tmin raster group?:','',
-			'radGroup','Extraterrestial solar radiation raster group?:','',
-			'fIni','Start year of this run?:','',
-			'fEnd','End year of this run?:','',
+			'viRgf','Vegetation Index raster group?:','',
+			'rainRgf','Precipitation raster group?:','',
+			'sYear','Start year of the series?:','',
+			'sMonth','Start month of the series?:','',
+			'petRgf','PET raster group or leave blank to create it?: ','',
+			'tmaxRgf','Tmax raster group?:','',
+			'tmedRgf','Tmed raster group?:','',
+			'tminRgf','Tmin raster group?:','',
+			'radRgf','Extraterrestial solar radiation raster group?:','',
+			'yIni','Start year of this run?:','',
+			'yEnd','End year of this run?:','',
 			'driver','GIS format for output images','RST',
 			'flag','Missing value','-999',
-			'action','Proceed with monitoring(m), assesment(a), both(b), none(n)?:','b',
+			'acction','Proceed with monitoring(m), assesment(a), both(b), none(n)?:','b',
 			'fileName','Name of this parameter file?:', paste('rue',format(Sys.time(), "%Y%m%d%H%M"),'.conf',sep='')
 	)
 	quest=matrix(quest,ncol=3, byrow=TRUE, dimnames=list(NULL,c('var','question','defaultvalue')))
@@ -43,27 +158,28 @@ create2dRueConfig = function(conf='') {
 		aux=readline(paste(quest[i,2],quest[i,3]))
 		if (aux!='') response[i]=aux
 	}
-	
+		
 	conffile=as.vector(response$fileName)	
 	write.table(t(response[-nq]),conffile,sep='=',quote=F,col.names=F)
 	conffile	
 }
 
 ###############################################
-# NAME: checkConf
+# NAME: Initial
 # PURPOSE:
-#     Read an 2dRue configuration file and check the inputs.
+#     Read an 2dRue configuration file and prepare the enviroment to run it and check the inputs.
 #     
 # INPUTS:
 #       conf: config file. 
 # OUTPUTS:
 #       boolean TRUE if all the options ar valid and the analisys can be done.
 #		FALSE if any options is erroneus or incongruent
-confChk=function (filename){
+initial=function (filename){
 	
 	checkgroup=function(rgffile){		
-		g=rgf.read(rgffile)		
-		cat('CHECKING ',rgffile,'\nHead of',rgffile,'\n',head(g),'...', fill=TRUE)		
+		g=rgf.read(rgffile)
+		cat('CHECKING ',rgffile,'\nHead of',rgffile,'\n',head(g),'...', fill=TRUE)
+		return(g)
 		pb =txtProgressBar(min=0,max=length(g),char='*',width=20,style=3)
 		aux=GDALinfo(g[1],silent=TRUE)		
 		for (i in g) { 
@@ -73,6 +189,7 @@ confChk=function (filename){
 		}		
 		close(pb)
 		cat('\n')
+		g
 	}
 	
 	checkgroups=function(rgffile1,rgffile2){		
@@ -85,118 +202,129 @@ confChk=function (filename){
 		if ((any(aux1[1:2]!=aux2[1:2])) || (length(aux1)!=length(aux2))) {stop('incongruent series')}		
 	}
 	
-	buildpet=function(filename){
-		o=readIniFile(filename)
-		tmin=rgf.read(o$tmin)
-		tmax=rgf.read(o$tmax)
-		tmed=rgf.read(o$tmed)
-		checkgroup(tmin)
-		checkgroup(tmax)
-		checkgroup(tmed)
-		checkgroups(tmin,tmax)
-		checkgroups(tmin,tmed)
-		if (o$radgroup!='') {rad=rgf.read(o$radgroup)}
+	buildpet=function(o){				
+		checkgroup(o$tmin)
+		checkgroup(o$tmax)
+		checkgroup(o$tmed)
+		checkgroups(o$tmin,o$tmax)
+		checkgroups(o$tmin,o$tmed)
+		if (o$radGroup!='') {rad=rgf.read(o$radGroup)}
 		else {
-			dir.create(paste(o$pout,'/rad',sep=''))
 			rad=paste(o$pout,'/rad/rad',1:12,'.',o$driver)
 			img=readGDAL(tmin[1])
 			solarRad12M(img,aux,drivername=o$driver,mvFlag=o$flag)
 		}
 		batchPetHgsm(o$mesini,tmin,tmax,tmed,rad)
 	}
+
 	
-	
-	########################## Check Start
-	aux=readIniFile(filename)
-	o=as.data.frame(t(aux[,3]),stringsAsFactors=FALSE)
-	names(o)=aux[,2]
+	########################## Initial Start
+	f=readConfigFile(filename)
+	o=list(pOut='',yIni=0,yEnd=0,acum=0,vi='',rain='',pet='',ppet='',prain='',driver='',flag=0)	
 	#check / in paths
-	as.data.frame(t(sub('/$','',o[1,])),stringsAsFactors=FALSE) #quitar / de cualquier cadena que lo tuviera
+	#	f=as.data.frame(t(sub('/$','',f[1,])),stringsAsFactors=FALSE) #quitar / de cualquier cadena que lo tuviera
 	#check output directory		
-	if (!file_test('-d',o$pOut)) stop('Output directory not accesible ',o$pOut)
+	if (!file_test('-d',f$pOut)) stop('Output directory not accesible ',f$pOut)
+	else o$pOut=f$pOut 
 	#check meshidro
-	if (!(o$mesHidro %in% 1:12)) stop('mes hidro must be between 1:12')
+	if (!(f$mHidro %in% 1:12)) stop('mes hidro must be between 1:12')
+	else f$mHidro=as.integer(f$mHidro)
 	#check nacum
-	if (!(o$acum %in% 1:12)) stop('nacum must be between 1:12')
+	if (!(f$acum %in% 1:12)) stop('nacum must be between 1:12')
+	else o$acum=as.integer(f$acum)
+	#check sMonth
+	if (!(f$sMonth %in% 1:12)) stop('sMonth must be between 1:12')
+	else o$sMonth=as.integer(f$sMonth)
+	#check sMonth
+	if (!(f$sYear %in% 1900:2100)) stop('sYear must be a valid year')
+	else o$sYear=as.integer(f$sYear)
 	#check driver
-	.isSupportedGDALFormat(o$driver)
+	if (isSupportedGDALFormat(f$driver)) o$driver=f$driver
 	#check mvFlag is a number
-	if (!is.finite(as.numeric(o$flag))) stop('mvFlag not a number')	
-	#check that groups are temporaly and spatialy coherents	
-	checkgroup(o$viGroup)
-	checkgroup(o$rainGroup)
-	checkgroups(o$viGroup,o$rainGroup)
-	#build ETP if needed
-	if (o$petGroup=='') {
+	if (!is.finite(as.numeric(f$flag))) stop('mvFlag not a number')
+	else o$flag=as.numeric(f$flag)
+	#check ini and end years
+	if (!(as.integer(f$yEnd)>=as.integer(f$yIni)+3)) stop('must have at least 3 years to do a regresion')
+	else {
+		o$yEnd=as.integer(f$yEnd)
+		o$yIni=as.integer(f$yIni)
+	}
+	
+	#check that Rain and Vi groups are temporaly and spatialy coherents	
+	o$vi=checkgroup(f$viRgf)
+	o$rain=checkgroup(f$rainRgf)
+	checkgroups(f$viRgf,f$rainRgf)
+	rgfLength=length(rgf.read(f$viRgf))
+	
+	#Create PET directory and build PET if needed
+	if (f$petRgf=='') {		
 		aux=getwd()
 		petDir=paste(o$pOut,'/PET',sep='')
-		#comprobar que existe 
+		#crear directorio Pet
 		if (file.access(petDir)==-1) {
 			if (!dir.create(petDir)) stop('no se puede crear petdir')
 		}		
-		o$petGroup=rgf.create(o$pOut,'PET/',fIni,fEnd)
-		buildpet(o)
+		sDate=as.Date(paste(o$sYear,o$sMonth,1,sep='/'))		
+		f$petRgf='petGroup.rgf'
+		write(paste(o$pOut,'/PET/pet',format(seq(sDate,length.out=rgfLength,by='months'),'%m%Y'),'.rst',sep=''),f$petRgf)
+		#buildpet(o)
 	}
-	#check that groups are temporaly and spatialy coherents
-	checkgroup(o$petGroup)
-	checkgroups(o$viGroup,o$petGroup)
-	#check ini and end years
-	if (!(o$fEnd>=o$fIni+3)) stop('must have at least 3 years to do a regresion')
+	#check that Pet and Vi groups are temporaly and spatialy coherents
+	o$pet=checkgroup(f$petRgf)
+	#checkgroups(f$viRgf,f$petRgf)
 	
-	#calculo de meses previos necesarios
-	rgf.summary(vis,'maxndvi.rst',fun='MAX')
-	maxvi=readGDAL('maxvi.rst')
-	whenvi=rgf.when(vis,maxvi)
+	#calculo de los rgf pet,rain,vi 
+	HM=f$mHidro
+	SY=o$sYear
+	SM=o$sMonth
+	AYI=o$yIni
+	AYE=o$yEnd
+	if (HM>=SM) {
+		SY=SY+1
+		e1=12+HM-SM		
+	} else {
+		e1=HM-SM
+	}
+	e2=(AYI-SY)*12	
+	i1=e1+e2+1
+	i2=i1+(AYE-AYI)*12
+	if (e2<0 | i2<0) {stop('error en las series')}	
+	o$rain=o$rain[i1:i2]	
+	o$pet=o$pet[i1:i2]
+	o$vi=o$vi[i1:i2]
+	
+	#calculo de los rgf ppet,prain
+	#calculo de meses previos al periodo de analisis necesarios
+	#TODO: ajustar extension a driver
+	rgf.summary(o$vi,'maxvi.rst',fun='MAX',drivername=o$driver,mvFlag=o$flag)
+	#maxvi=readGDAL('maxvi.rst',silent=TRUE)
+	whenvi=rgf.when(o$vi,'maxvi.rst')
 	#calculo de meses previos necesarios 
-	nmonthsneeded=nMonths-min(maxvi$band1)+1 # ej: 10 - 1 + 1 para 10 meses de acum con maximo VI en primer mes...
-	if (nmonthsneeded<0) nmonthsneeded=0
-	h=hist(whenvi,nclass=max(whenvi$band1))
+	nmonthsneeded=o$acum-min(whenvi$band1)+1 # ej: 10 - 1 + 1 para 10 meses de acum con maximo VI en primer mes...
+	if (nmonthsneeded<0) nmonthsneeded=0	
+	i3=i1-nmonthsneeded
+	o$prain=o$rain[i3:i1]
+	o$ppet=o$pet[i3:i1]
+		
 	#return
 	o
 }
 
-###############################################
-# NAME: assestment
-# PURPOSE:
-# INPUTS:
-# OUTPUTS:
-readConfigFile=function (conf) {
-	o=readIniFile(conf)
-	rains=rgf.read(o$raingroups)
-	Hidroini=o$MonthsHidro
-	yiniS=o$stime
-	yini=o$yearini
-	yend=o$yearend
-	o$rains=rains
-	o$pets
-	o$prerains
-	o$prepets
-	o$vis
-	o$yini
-	o$yfin
-	o$nMonths	
-}
 
 ###############################################
 # NAME: assestment
 # PURPOSE:
 # INPUTS:
 # OUTPUTS:
-assestment = function(conf) {
-	o=readConfigFile(conf)
-	vis=rgf.read(o$vigroup)
-	rains=rgf.read(o$raingroup)	
-	pets=rgf.read(o$petgroup)
-	prerains=paste()
-	prepets=paste()	
+assestment = function(o) {		
 	#Make Indices 
-	rueMe=rueObsMe(rains,vis)
-	writeGDAL(rueMe,paste(pout,'rueMed.rst',sep=''),drivername=o$driver,mvFlag=o$flag)	
-	rueEx=rueObsEx(rains,vis,prerains,nMonths=o$acum)
+	rueMe=rueObsMe(o$rain,o$vi)
+	writeGDAL(rueMe,paste(o$pOut,'rueMed.rst',sep=''),drivername=o$driver,mvFlag=o$flag)	
+	rueEx=rueObsEx(o$rain,o$vi,o$prain,nMonths=o$acum)
 	writeGDAL(rueEx,'rueEx.rst',drivername=o$driver,mvFlag=o$flag)	
-	iaMe=aiObsMe(rains,pets)
+	iaMe=aiObsMe(o$rain,o$pet)
 	writeGDAL(iaMe,'iaMed.rst',drivername=o$driver,mvFlag=o$flag)	
-	iaEx=aiObsEx(rains,vis,prerains,prepets,nMonths=o$acum)	
+	iaEx=aiObsEx(o$rain,o$vi,o4prain,o$ppet,nMonths=o$acum)	
 	writeGDAL(iaEx,'iaEx.rst',drivername=o$driver,mvFlag=o$flag)	
 }
 
@@ -207,68 +335,34 @@ assestment = function(conf) {
 # PURPOSE:
 # INPUTS:
 # OUTPUTS:
-monitoring = function(conf) {
-	o=readIniFile(conf)
+monitoring = function(o) {	
 	#MAKE ndvi SUMMARIES BY HIDROLOGIC YEARS
 	#TODO: poner bien la extenxion del driver
-	annualVis=paste(o$pout,'vi',o$yini:o$yend,'.',o$driver,sep='')
-	rgf.summary(o$vigroup,annualVis,step=12,fun='MEAN',drivername=o$driver,mvFlag=o$flag)
+	annualVis=paste(o$pOut,'/vi',o$yIni:o$yEnd,'.',o$driver,sep='')
+	rgf.summary(o$vi,annualVis,step=12,fun='MEAN',drivername=o$driver,mvFlag=o$flag)
 	
 	#make aiObsMed by hidrologic years
-	annualIaMes=paste(o$pout,'iaMed',o$yini:o$yend,'.',o$driver,sep='')
-	n=length(annualIaMes)	
+	annualIaMed=paste(o$pOut,'/iaMed',o$yIni:o$yEnd,'.',o$driver,sep='')
+	n=length(annualIaMed)	
 	for (i in 0:(n-1)) {
-		etp12=o$petgroup[(1:12)+i*12]
-		rain12=o$raingroup[(1:12)+i*12]
+		etp12=o$pet[(1:12)+i*12]
+		rain12=o$rain[(1:12)+i*12]
 		aiMe=aiObsMe(rain12,etp12)
-		writeGDAL(aiMe,annualIaMes[i+1],drivername=o$driver,mvFlag=o$flag)
+		writeGDAL(aiMe,annualIaMed[i+1],drivername=o$driver,mvFlag=o$flag)
 	}
 	
 	#make annual time files
-	annualTimes=paste(o$pout,'time',o$yini:o$yend,'.',o$driver,sep='')
+	annualTimes=paste(o$pOut,'/time',o$yIni:o$yEnd,'.',o$driver,sep='')
 	aux=readGDAL(annualVis[1])	
 	for (i in 0:(n-1)) {
-		aux$band1=i+o$yini
+		aux$band1=i+o$yIni
 		writeGDAL(aux,annualTimes[i+1],drivername=o$driver,mvFlag=o$flag)
 	}
 	#make step by step regresion
 	aux=c('f1','f2','f3','f4','f5','f6','f7')
-	aux=paste(o$pout,aux,'.',o$driver,sep='')
+	aux=paste(o$pOut,aux,'.',o$driver,sep='')
 	regStepRaster(annualVis,annualTimes,annualIaMes,aux,drivername=o$driver,mvFlag=o$flag)
 }
-
-
-###############################################
-# NAME: r2dRueWiz
-# PURPOSE:
-#     Read an 2dRue configuration file and perform actions acordely 
-#     Caln calculate the monitoring, the assesment, both or none, acordely with the input.
-# INPUTS:
-#       conf: config file. If none is provided, it will be create through interactive questions to the user 
-#       overwrite: Logical flag. When overwrite is TRUE, none of the existing files will be replaced by new outputs, forcing to stop the proccess if necessary. 
-#       verbose: level of log detail
-# OUTPUTS:
-#       r2dRue wiz is a procedure that can produced all the output involved in r2dRue analisys.
-#		It will be created a log file named as the config file but with its extension turned to .log
-r2dRueWiz = function(conf='', overwrite=FALSE, verbose=0) {
-	if (conf=='')  {
-		TmpConfig=create2dRueConfig()
-		r2dRueWiz(TmpConfig,overwrite,verbose)
-	} 
-	else {				
-		confChk(conf)
-		o=readIniFile(conf)
-		switch(o$action,
-				'm' = monitoring(config),
-				'a' = assesment(config),
-				'b' = {monitoring(config)
-					assesment(config)
-				})
-		Save(log,conf.log)
-	}
-}
-
-
 
 
 ###############################################
@@ -882,5 +976,17 @@ regStepDF=function (X){
 
 
 
-trace(confiChk,browser)
+trace(initial,browser)
 r2dRueWiz('rue.conf')
+f=readIniFile('rue.conf')
+g=readConfigFile('rue.conf')
+do=function() {
+	trace(createRunConfig,browser) 
+	#r2dRueWiz('rue.conf')
+	o=createRunConfig('rue.conf')
+	print(readLines('rue.conf'))
+	cat(sprintf('Original data: %d images, from %s to %s \n',o$sLength,format(o$sIniDate,'%b/%Y'),format(o$sEndDate,'%b/%Y')))
+	cat(sprintf('Analisys data: %d images, from %s to %s, %d Hidrological years \n',o$rLength,format(o$rIniDate,'%b/%Y'),format(o$rEndDate,'%b/%Y'),o$rYears))
+}
+
+
