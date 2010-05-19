@@ -57,7 +57,9 @@ readConfigFile=function (conf) {
 #       conf: lista de configuracion basica 
 # OUTPUTS:
 createRunConfig=function (conf){
+	#campos forzados a enteros
 	enteros=c('mHidro','acum','sYear','sMonth','yIni','yEnd','flag')
+	#definicion inicial
 	o=list(
 		#from config file
 		comment='',pOut='',mHidro='',acum='',viRgf='',rainRgf='',sYear='',sMonth='',
@@ -67,20 +69,25 @@ createRunConfig=function (conf){
 		svi='',srain='',spet='',sIniDate='',sEndDate='',sDates='',sLength='',
 		stmax='',stmin='',stmed='',srad=''
 	)
+	
+	#read fields from file
 	co=readConfigFile(conf)
-	o[names(co)]=co #copiar parametros from config file	
-	o[enteros]=as.integer(co[enteros]) #pasar a enteros 
+	o[names(co)]=co #copy fields from config file	
+	o[enteros]=as.integer(co[enteros]) #pasar a enteros	
 	
-	
+	#read rgf files
 	o$svi=rgf.read(o$viRgf)
 	o$srain=rgf.read(o$rainRgf)
+	o$pet=rgf.read(o$petRgf)
 	
+	#calculate dates of the elements in the serie 
 	o$sLength=length(o$svi)
 	o$sIniDate=as.Date(paste(o$sYear,o$sMonth,1,sep='/'))
 	o$sDates=seq(o$sIniDate,length.out=o$sLength,by='month')
 	o$sEndDate=o$sDates[o$sLength]
 	
-	o$rYears=o$yEnd-o$yIni
+	
+	o$rYears=o$yEnd-o$yIni+1
 	o$rLength=o$rYears*12	
 	o$rIniDate=as.Date(paste(o$yIni,o$mHidro,1,sep='/'))
 	o$rDates=seq(o$rIniDate,length.out=o$rLength,by='month')
@@ -97,7 +104,7 @@ createRunConfig=function (conf){
 	o$ppet=o$spet[o$sDates %in% o$rPreDates]
 	o$prain=o$srain[o$sDates %in% o$rPreDates]
 	
-	
+	#print info
 	aux='\n'
 	aux=c(aux,'\n',sprintf('################### r2dRue RUN: %s',o$comment))
 	aux=c(aux,'\n',sprintf('Original data: %d images, from %s to %s',o$sLength,format(o$sIniDate,'%b/%Y'),format(o$sEndDate,'%b/%Y')))
@@ -338,6 +345,7 @@ assestment = function(o) {
 monitoring = function(o) {	
 	#MAKE ndvi SUMMARIES BY HIDROLOGIC YEARS
 	#TODO: poner bien la extenxion del driver
+	
 	annualVis=paste(o$pOut,'/vi',o$yIni:o$yEnd,'.',o$driver,sep='')
 	rgf.summary(o$vi,annualVis,step=12,fun='MEAN',drivername=o$driver,mvFlag=o$flag)
 	
