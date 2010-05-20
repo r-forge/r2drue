@@ -17,14 +17,44 @@ r2dRueWiz = function(conf='', overwrite=FALSE, verbose=0) {
 	} 
 	else {				
 		o=createRunConfig(conf)
+		showInfo(o)
 		switch(o$acction,
 				'm' = monitoring(o),
 				'a' = assesment(o),
-				'b' = {	monitoring(o)
-					assesment(o)
+				'b' = {	assesment(o)
+					monitoring(o)
 				})
 		Save(log,conf.log)
 	}
+}
+
+###############################################
+# NAME: assestment
+# PURPOSE: Lee un fo
+# INPUTS:
+# OUTPUTS:
+showInfo=function (o) {
+	#print info
+	aux='\n'
+	aux=c(aux,'\n',sprintf('################### r2dRue RUN: %s',o$comment))
+	aux=c(aux,'\n',sprintf('Original data: %d images, from %s to %s',o$sLength,format(o$sIniDate,'%b/%Y'),format(o$sEndDate,'%b/%Y')))
+	aux=c(aux,'\n',sprintf('Analisys data: %d images, from %s to %s, %d Hidrological years starting at %s',o$rLength,format(o$rIniDate,'%b/%Y'),format(o$rEndDate,'%b/%Y'),o$rYears,month.name[o$mHidro]))
+	aux=c(aux,'\n',sprintf('               %d acummulated months, %d preimages from  %s to %s',o$acum, length(o$ppet),format(o$rPreDates[1],'%b/%Y'),format(o$rPreDates[length(o$ppet)],'%b/%Y') ))
+	aux=c(aux,'\n\n',sprintf('---------- Raster Group Info'))
+	aux=c(aux,'\n',sprintf('viRgf     : %s',attr(o$vi,'path')))
+	aux=c(aux,'\n',sprintf('            %s ...',paste(head(attr(o$vi,'files'),10),collapse=' ')))
+	aux=c(aux,'\n',sprintf('rainRgf   : %s',attr(o$rain,'path')))
+	aux=c(aux,'\n',sprintf('            %s ...',paste(head(attr(o$rain,'files'),10),collapse=' ')))
+	aux=c(aux,'\n',sprintf('petRgf    : %s',attr(o$pet,'path')))
+	aux=c(aux,'\n',sprintf('            %s ...',paste(head(attr(o$pet,'files'),10),collapse=' ')))
+	aux=c(aux,'\n',sprintf('preRainRgf: %s',attr(o$prain,'path')))
+	aux=c(aux,'\n',sprintf('            %s ...',paste(head(attr(o$prain,'files'),10),collapse=' ')))
+	aux=c(aux,'\n',sprintf('prePetRgf : %s',attr(o$ppet,'path')))
+	aux=c(aux,'\n',sprintf('            %s ...',paste(head(attr(o$ppet,'files'),10),collapse=' ')))
+	aux=c(aux,'\n\n',sprintf('---------- Spatial Info'))
+	aux=c(aux,'\n',sprintf('cols: %d  rows: %d  res: %f  proj: %s',o$gdal[1],o$gdal[2],o$gdal[6],attr(o$gdal,'projection')))	
+	aux=c(aux,'\n',sprintf(''))
+	cat(aux)	
 }
 
 ###############################################
@@ -54,7 +84,7 @@ readConfigFile=function (conf) {
 # PURPOSE:
 #     crea una lista con la informacion necesaria para una ejecucion de 2dRue
 # INPUTS:
-#       conf: lista de configuracion basica 
+#     conf: lista de configuracion basica (sin campos calculados) 
 # OUTPUTS:
 createRunConfig=function (conf){
 	#campos forzados a enteros
@@ -67,7 +97,9 @@ createRunConfig=function (conf){
 		#calculated		
 		vi='',rain='',pet='',ppet='',prain='',rLength='',rIniDate='',rEndDate='',rDates='',rPreDates='',
 		svi='',srain='',spet='',sIniDate='',sEndDate='',sDates='',sLength='',
-		stmax='',stmin='',stmed='',srad=''
+		stmax='',stmin='',stmed='',srad='',
+		#calculated spaciales
+		gdal=''
 	)
 	
 	#read fields from file
@@ -78,44 +110,53 @@ createRunConfig=function (conf){
 	#read rgf files
 	o$svi=rgf.read(o$viRgf)
 	o$srain=rgf.read(o$rainRgf)
-	o$pet=rgf.read(o$petRgf)
+	o$spet=rgf.read(o$petRgf)
 	
 	#calculate dates of the elements in the serie 
 	o$sLength=length(o$svi)
 	o$sIniDate=as.Date(paste(o$sYear,o$sMonth,1,sep='/'))
 	o$sDates=seq(o$sIniDate,length.out=o$sLength,by='month')
 	o$sEndDate=o$sDates[o$sLength]
-	
-	
+		
 	o$rYears=o$yEnd-o$yIni+1
 	o$rLength=o$rYears*12	
 	o$rIniDate=as.Date(paste(o$yIni,o$mHidro,1,sep='/'))
 	o$rDates=seq(o$rIniDate,length.out=o$rLength,by='month')
 	o$rEndDate=o$rDates[o$rLength]
 		
-	o$rPreDates=seq(o$rIniDate,length.out=o$acum+1,by='-1 month')[-1]
+	o$rPreDates=sort(seq(o$rIniDate,length.out=o$acum+1,by='-1 month')[-1])
 
 	if (!all(o$rDates %in% o$sDates)) stop('check start and initial dates')
 	if (!all(o$rPreDates %in% o$sDates)) stop('check start and initial dates')
 	
+	#calculate vi,rain,pet,ppet and prain series
 	o$vi=o$svi[o$sDates %in% o$rDates]
 	o$rain=o$srain[o$sDates %in% o$rDates]
 	o$pet=o$spet[o$sDates %in% o$rDates]
 	o$ppet=o$spet[o$sDates %in% o$rPreDates]
 	o$prain=o$srain[o$sDates %in% o$rPreDates]
 	
-	#print info
-	aux='\n'
-	aux=c(aux,'\n',sprintf('################### r2dRue RUN: %s',o$comment))
-	aux=c(aux,'\n',sprintf('Original data: %d images, from %s to %s',o$sLength,format(o$sIniDate,'%b/%Y'),format(o$sEndDate,'%b/%Y')))
-	aux=c(aux,'\n',sprintf('Analisys data: %d images, from %s to %s, %d Hidrological years',o$rLength,format(o$rIniDate,'%b/%Y'),format(o$rEndDate,'%b/%Y'),o$rYears))
-	aux=c(aux,'\n',sprintf('---------- Raster Group Info'))
-	aux=c(aux,'\n',sprintf('viRgf  : %s',strwrap(paste(head(o$vi,3),collapse=' '),60)))
-	aux=c(aux,'\n',sprintf('rainRgf: %s',paste(head(o$rain,3),collapse=' ')))
-	aux=c(aux,'\n',sprintf('petRgf : %s',paste(head(o$pet,3),collapse=' ')))
-	aux=c(aux,'\n',sprintf('----------------------------'))
-	cat(aux)
+	#calculate atributes
+	attr(o$vi,'path')=dirname(o$vi[1])
+	attr(o$rain,'path')=dirname(o$rain[1])
+	attr(o$pet,'path')=dirname(o$pet[1])
+	attr(o$ppet,'path')=dirname(o$ppet[1])
+	attr(o$prain,'path')=dirname(o$prain[1])
+	attr(o$vi,'files')=basename(o$vi)
+	attr(o$rain,'files')=basename(o$rain)
+	attr(o$pet,'files')=basename(o$pet)
+	attr(o$ppet,'files')=basename(o$ppet)
+	attr(o$prain,'files')=basename(o$prain)	
 	
+	if (o$petRgf == '') {
+		
+	}
+	
+	o$gdal=GDALinfo(o$vi[1],silent=TRUE)	
+	
+	#show
+	showInfo(o)
+	#return	
 	o	
 }
 
@@ -323,8 +364,9 @@ initial=function (filename){
 # PURPOSE:
 # INPUTS:
 # OUTPUTS:
-assestment = function(o) {		
+assesment = function(o) {		
 	#Make Indices 
+	
 	rueMe=rueObsMe(o$rain,o$vi)
 	writeGDAL(rueMe,paste(o$pOut,'rueMed.rst',sep=''),drivername=o$driver,mvFlag=o$flag)	
 	rueEx=rueObsEx(o$rain,o$vi,o$prain,nMonths=o$acum)
@@ -395,7 +437,7 @@ rueObsMe = function(rainFl, viFl, silent=FALSE) {
 	nah=floor(n/12)    #num de years hidrologicos
 	
 	if (!silent) {
-		print(paste('Procesing rueObdMe for', nah, 'years'))
+		print(paste('\nProcesing rueObdMe for', nah, 'years'))
 		pb =txtProgressBar(min=0,max=n,char='*',width=20,style=3)
 	}
 	
@@ -417,8 +459,11 @@ rueObsMe = function(rainFl, viFl, silent=FALSE) {
 	RueMed=RueMed/nah
 	aux=readGDAL(rainFl[1],silent=TRUE)
 	aux$band1=RueMed
-	if (!silent) close(pb)
-	print(summary(aux))
+	if (!silent){
+		close(pb)
+		cat('-------')
+		print(summary(aux$band1))
+	}
 	aux
 }
 

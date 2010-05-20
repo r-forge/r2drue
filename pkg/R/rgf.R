@@ -1,4 +1,53 @@
 ###############################################
+# NAME: rgf.resume
+# PURPOSE:
+# INPUTS:
+# OUTPUTS:
+###############################################
+rgf.resume=function(x){
+	o=list(denx='',deny='',box='',summ='',vNA='')
+	deny=denx=box=cont=summ=0
+	pb=txtProgressBar(min=0,max=length(x),char='*',width=20,style=3)
+	for (i in x) {
+		b=readGDAL(i,silent=T)$band1
+		d=density(b,n=75,na.rm=T)
+		denx=cbind(denx,d$x)
+		deny=cbind(deny,d$y)
+		box=cbind(box,boxplot(b,plot=F)$stats)
+		summ=(cbind(summ,summary(b)))
+		setTxtProgressBar(pb, cont)
+		cont=cont+1
+	}
+	o$denx=denx[,-1]
+	o$deny=deny[,-1]
+	o$box=box[,-1]
+	o$summ=summ[,-1]
+	o$vNA=o$summ[7,]
+	o	
+}
+
+###############################################
+# NAME: rgf.plot
+# PURPOSE:
+# INPUTS:
+# OUTPUTS:
+###############################################
+rgf.plot=function(o,type='rain'){
+	if (type=='rain') {
+		barplot(o$summ[6,],col=4,names.arg=1:200)
+		barplot(o$summ[4,],add=T,col=3)
+		barplot((o$summ[6,]==0)*-10,add=T,col=2)
+	}
+	if (type=='box') {
+		boxplot(o$box)
+	}
+	if (type=='density') {
+		plot(o$deny~o$denx,type='l')
+	}
+	
+}
+
+###############################################
 # NAME: rgf.create
 # PURPOSE:
 # INPUTS:
@@ -24,15 +73,21 @@ rgf.create = function(prefix,suffix='',ini,fin=ini,monthini=1,output) {
 
 ###############################################
 # NAME: 
-# PURPOSE:
-# INPUTS:
-# OUTPUTS:
+# PURPOSE: read a rgf file and convert it to a character vector
+# INPUTS: file name
+# OUTPUTS: a modified character vector of text in inFl,
+#          1ª modificacion: si inFl 
 ###############################################
 
 rgf.read = function (inFl){
+	if (!file.exists(inFl)) stop(sprintf('file not found %s',inFl))
+	if (file.info(inFl)['isdir'] == TRUE) stop(sprintf('file not found %s',inFl))
+	dir=dirname(inFl)
+	if (dir=='.') dir=getwd()
 	er=try((aux=as.vector(read.table(inFl,sep='&')[,1])),silent=TRUE)
 	if (class(er)=='try-error') stop (sprintf('error reading %s',inFl))
-	if (!is.na(as.integer(aux[1]))) {aux=aux[-1]} #comprobar si hay un numero en la primera linea y eliminarlo	
+	if (!is.na(as.integer(aux[1]))) aux=aux[-1] #comprobar si hay un numero en la primera linea y eliminarlo
+	if (basename(aux[1]) == aux[1]) aux=paste(dir,'/',aux,sep='')
 	aux
 }
 
@@ -89,6 +144,10 @@ rgf.when = function (inFl,ref,order='FIRST',silent=FALSE) {
 	aux$band1=when
 	aux
 }
+
+
+
+
 
 
 ###############################################
