@@ -28,6 +28,34 @@ r2dRueWiz = function(conf='', overwrite=FALSE, verbose=0) {
 	}
 }
 
+
+rueplot=function(o,type='rain'){
+	if (type =='vimax') {
+		if (o$resume){
+			nf <- layout(matrix(c(1,1,2,3,3,4), 3, 2))
+			layout.show(nf)
+			a=readGDAL(o$viMax)
+			image(a)
+			title(main='vi maximum')
+			plot(density(a$band1,rm.na=T))
+			a=readGDAL(o$whenviMax)
+			image(a)
+			title(main='when vi maximum')
+			hist(a$band1,breaks=o$rLength)
+			barplot(o$summ[6,],col=4,names.arg=1:200)
+			barplot(o$summ[4,],add=T,col=3)
+			barplot((o$summ[6,]==0)*-10,add=T,col=2)
+		} else (stop('Resume not done... use resume() function first'))
+	}
+	if (type=='box') {
+		boxplot(o$box)
+	}
+	if (type=='density') {
+		plot(o$deny~o$denx,type='l')
+	}
+	
+}
+
 ###############################################
 # NAME: assestment
 # PURPOSE: Lee un fo
@@ -53,8 +81,25 @@ showInfo=function (o) {
 	aux=c(aux,'\n',sprintf('            %s ...',paste(head(attr(o$ppet,'files'),10),collapse=' ')))
 	aux=c(aux,'\n\n',sprintf('---------- Spatial Info'))
 	aux=c(aux,'\n',sprintf('cols: %d  rows: %d  res: %f  proj: %s',o$gdal[1],o$gdal[2],o$gdal[6],attr(o$gdal,'projection')))	
-	aux=c(aux,'\n',sprintf(''))
-	cat(aux)	
+	if (o$assesment){
+	aux=c(aux,'\n\n',sprintf('---------- Assesment results at %s',attr(o$assesment,'date')))
+	aux=c(aux,'\n',sprintf('Min.   1st Qu.    Median      Mean   3rd Qu.      Max.      NA\'s'))
+	aux=c(aux,'\n',attr(o$rueMed,'summary'))
+	aux=c(aux,'\n',sprintf('rueMed    :'))
+	print(attr(o$rueEx,'summary'))
+	aux=c(aux,'\n',sprintf('rueMed    :'))
+	print(attr(o$aiMed,'summary'))
+	}else{aux=c(aux,'\n\n',sprintf('---------- Assesment results not updated'))}
+	if (o$assesment){
+		aux=c(aux,'\n\n',sprintf('---------- Monitoring results  %s',attr(o$monitoring,'date')))
+		aux=c(aux,'\n',sprintf('          Min.   1st Qu.    Median      Mean   3rd Qu.      Max.      NA\'s'))
+		aux=c(aux,'\n',attr(o$rueMed,'summary'))
+		aux=c(aux,'\n',sprintf('rueMed    :'))
+		print(attr(o$rueEx,'summary'))
+		aux=c(aux,'\n',sprintf('rueMed    :'))
+		print(attr(o$aiMed,'summary'))
+	}else{aux=c(aux,'\n\n',sprintf('---------- Monitoring results not updated'))}
+	cat(aux)
 }
 
 ###############################################
@@ -99,7 +144,11 @@ createRunConfig=function (conf){
 		svi='',srain='',spet='',sIniDate='',sEndDate='',sDates='',sLength='',
 		stmax='',stmin='',stmed='',srad='',
 		#calculated spaciales
-		gdal=''
+		gdal='',
+		#calculates extern
+		assesment=FALSE,rueMed='',rueEx='',aiMed='',aiEx='',
+		monitoring=FALSE,f1='',f2='',f3='',f4='',f5='',f6='',f7='',f8='',f9='',
+		resume=FALSE,viMax='',whenviMax=''
 	)
 	
 	#read fields from file
@@ -364,17 +413,39 @@ initial=function (filename){
 # PURPOSE:
 # INPUTS:
 # OUTPUTS:
-assesment = function(o) {		
-	#Make Indices 
-	
-	rueMe=rueObsMe(o$rain,o$vi)
-	writeGDAL(rueMe,paste(o$pOut,'rueMed.rst',sep=''),drivername=o$driver,mvFlag=o$flag)	
-	rueEx=rueObsEx(o$rain,o$vi,o$prain,nMonths=o$acum)
-	writeGDAL(rueEx,'rueEx.rst',drivername=o$driver,mvFlag=o$flag)	
-	iaMe=aiObsMe(o$rain,o$pet)
-	writeGDAL(iaMe,'iaMed.rst',drivername=o$driver,mvFlag=o$flag)	
-	iaEx=aiObsEx(o$rain,o$vi,o4prain,o$ppet,nMonths=o$acum)	
-	writeGDAL(iaEx,'iaEx.rst',drivername=o$driver,mvFlag=o$flag)	
+assesment = function(o) {
+	#parameter´s name in parent frame (to do a 'by reference')
+	originalo=deparse(substitute(o))
+	#set assesment flag to FALSE	
+	o$rueEx=o$rueMed=o$aiEx=o$aiMed=''		
+	o$assestment=FALSE
+	assign(originalo,o,envir=parent.frame())
+	#def files
+	outNames=c('rueObsMed','rueObsEx','aiObsMed','aiObsEx')
+	outNames=paste(o$pOut,'/',outNames,'.',o$driver,sep='')
+	#try to make Indices	
+	er=try({		
+			rueMe=rueObsMe(o$rain,o$vi)
+			writeGDAL(rueMe,outNames[1],drivername=o$driver,mvFlag=o$flag)
+			iaMe=aiObsMe(o$rain,o$pet)
+			writeGDAL(iaMe,outNames[3],drivername=o$driver,mvFlag=o$flag)
+			rueEx=rueObsEx(o$rain,o$vi,o$prain,nMonths=o$acum)
+			writeGDAL(rueEx,outNames[2],drivername=o$driver,mvFlag=o$flag)				
+			iaEx=aiObsEx(o$rain,o$vi,o$pet,o$prain,o$ppet,nMonths=o$acum)	
+			writeGDAL(iaEx,outNames[4],drivername=o$driver,mvFlag=o$flag)
+	})
+	#update o
+	if (!class(er)=='try-error'){
+		o$rueEx=outNames[1]; attr(o$rueEx,'summary')=summary(readGDAL(outNames[1])$band1,silent=T)
+		o$rueMed=outNames[2]; attr(o$rueMed,'summary')=summary(readGDAL(outNames[2])$band1,silent=T)
+		o$aiEx=outNames[3]; attr(o$aiEx,'summary')=summary(readGDAL(outNames[3])$band1,silent=T)
+		o$aiMed=outNames[4]; attr(o$aiMed,'summary')=summary(readGDAL(outNames[4])$band1,silent=T)	
+		o$assesment=TRUE 
+		attr(o$assesment,'date')=format(Sys.time(),'%d %b %Y %H:%M:%S')
+		for (i in outNames)
+		attr(o$aiMed,'summary')=summary(readGDAL(outNames[4])$band1,silent=T)
+		assign(originalo,o,envir=parent.frame())
+	}
 }
 
 
@@ -385,33 +456,54 @@ assesment = function(o) {
 # INPUTS:
 # OUTPUTS:
 monitoring = function(o) {	
-	#MAKE ndvi SUMMARIES BY HIDROLOGIC YEARS
-	#TODO: poner bien la extenxion del driver
-	
-	annualVis=paste(o$pOut,'/vi',o$yIni:o$yEnd,'.',o$driver,sep='')
-	rgf.summary(o$vi,annualVis,step=12,fun='MEAN',drivername=o$driver,mvFlag=o$flag)
-	
-	#make aiObsMed by hidrologic years
-	annualIaMed=paste(o$pOut,'/iaMed',o$yIni:o$yEnd,'.',o$driver,sep='')
-	n=length(annualIaMed)	
-	for (i in 0:(n-1)) {
-		etp12=o$pet[(1:12)+i*12]
-		rain12=o$rain[(1:12)+i*12]
-		aiMe=aiObsMe(rain12,etp12)
-		writeGDAL(aiMe,annualIaMed[i+1],drivername=o$driver,mvFlag=o$flag)
-	}
-	
-	#make annual time files
+	#parameter´s name in parent frame (to do a 'by reference')
+	originalo=deparse(substitute(o))
+	#set assesment flag to FALSE	
+	o$f1=o$f2=o$f3=o$f4=o$f5=o$f6=o$f7=o$f8=o$f9=''			
+	o$monitoring=FALSE
+	assign(originalo,o,envir=parent.frame())
+	#def files
+	outNames=c('f1','f2','f3','f4','f5','f6','f7')
+	outNames=paste(o$pOut,'/',outNames,'.',o$driver,sep='')
+	annualVis=paste(o$pOut,'/viMed',o$yIni:o$yEnd,'.',o$driver,sep='')
+	annualIaMed=paste(o$pOut,'/aiMed',o$yIni:o$yEnd,'.',o$driver,sep='')
 	annualTimes=paste(o$pOut,'/time',o$yIni:o$yEnd,'.',o$driver,sep='')
-	aux=readGDAL(annualVis[1])	
-	for (i in 0:(n-1)) {
-		aux$band1=i+o$yIni
-		writeGDAL(aux,annualTimes[i+1],drivername=o$driver,mvFlag=o$flag)
+	#try to make Indices	
+	er=try({	
+		print('---------- Make annuals Vegetation Index Means')		
+		rgf.summary(o$vi,annualVis,step=12,fun='MEAN',drivername=o$driver,mvFlag=o$flag)		
+		#make aiObsMed by hidrologic years	
+		print('---------- Make annuals Aridity Index')				
+		n=o$rYears
+		for (i in 0:(n-1)) {
+			etp12=o$pet[(1:12)+i*12]
+			rain12=o$rain[(1:12)+i*12]
+			aiMe=aiObsMe(rain12,etp12,silent=T)
+			writeGDAL(aiMe,annualIaMed[i+1],drivername=o$driver,mvFlag=o$flag)
+		}		
+		print('---------- Make annuals time series')
+		#make annual time files		
+		aux=readGDAL(annualVis[1],silent=T)	
+		for (i in 0:(n-1)) {
+			aux$band1=o$yIni+i
+			writeGDAL(aux,annualTimes[i+1],drivername=o$driver,mvFlag=o$flag)
+		}
+		#make step by step regresion
+		print('---------- Make Step by Step regresion')
+		regStepRaster(annualVis,annualTimes,annualIaMed	,outNames,drivername=o$driver,mvFlag=o$flag)
+	})
+	#update o
+	if (!class(er)=='try-error'){
+		o$f1=outNames[1]; attr(o$f1,'summary')=summary(readGDAL(outNames[1],silent=T)$band1)
+		o$f2=outNames[2]; attr(o$f2,'summary')=summary(readGDAL(outNames[2],silent=T)$band1)
+		o$f3=outNames[3]; attr(o$f3,'summary')=summary(readGDAL(outNames[3],silent=T)$band1)
+		o$f4=outNames[4]; attr(o$f4,'summary')=summary(readGDAL(outNames[4],silent=T)$band1)	
+		o$f5=outNames[5]; attr(o$f5,'summary')=summary(readGDAL(outNames[5],silent=T)$band1)
+		o$f6=outNames[6]; attr(o$f6,'summary')=summary(readGDAL(outNames[6],silent=T)$band1)
+		o$f7=outNames[7]; attr(o$f7,'summary')=summary(readGDAL(outNames[7],silent=T)$band1)
+		o$monitoring=TRUE ; attr(o$monitoring,'date')=format(Sys.time(),'%d %b %Y %H:%M:%S')
+		assign(originalo,o,envir=parent.frame())
 	}
-	#make step by step regresion
-	aux=c('f1','f2','f3','f4','f5','f6','f7')
-	aux=paste(o$pOut,aux,'.',o$driver,sep='')
-	regStepRaster(annualVis,annualTimes,annualIaMes,aux,drivername=o$driver,mvFlag=o$flag)
 }
 
 
@@ -437,7 +529,7 @@ rueObsMe = function(rainFl, viFl, silent=FALSE) {
 	nah=floor(n/12)    #num de years hidrologicos
 	
 	if (!silent) {
-		print(paste('\nProcesing rueObdMe for', nah, 'years'))
+		print(paste('Procesing rueObsMe for', nah, 'years ---'))
 		pb =txtProgressBar(min=0,max=n,char='*',width=20,style=3)
 	}
 	
@@ -459,11 +551,7 @@ rueObsMe = function(rainFl, viFl, silent=FALSE) {
 	RueMed=RueMed/nah
 	aux=readGDAL(rainFl[1],silent=TRUE)
 	aux$band1=RueMed
-	if (!silent){
-		close(pb)
-		cat('-------')
-		print(summary(aux$band1))
-	}
+	if (!silent) close(pb)
 	aux
 }
 
@@ -497,7 +585,7 @@ aiObsMe=function (rainFl, petFl, FAO=FALSE, silent=FALSE){
 	nah=floor(n/12) #num de years hidrologicos
 	
 	if (!silent){
-		print(paste('Processing aiObsMe for', nah, 'years'))
+		print(paste('Processing aiObsMe for', nah, 'years ---'))
 		pb =txtProgressBar(min=0,max=n,char='*',width=20,style=3)
 	}
 	IaMed=0
@@ -523,10 +611,9 @@ aiObsMe=function (rainFl, petFl, FAO=FALSE, silent=FALSE){
 	}
 	
 	IaMed=IaMed/nah
-	aux=readGDAL(rainFl[1])
+	aux=readGDAL(rainFl[1],silent=TRUE)
 	aux$band1=IaMed
 	if (!silent) close(pb)
-	print(summary(aux))
 	aux
 }
 
@@ -581,6 +668,7 @@ rueObsEx = function (rainFl, viFl, preRainFl, nMonths=6, silent=FALSE){
 	
 	# Calcula NdviMax y NdviMaxMonth
 	if (!silent) {
+		print(paste('Processing rueObsEx for', nah, 'years ---'))
 		print('Processing vegetation index files')
 		pb =txtProgressBar(min=1,max=n,char='*',width=20,style=3)
 	} 
@@ -591,8 +679,9 @@ rueObsEx = function (rainFl, viFl, preRainFl, nMonths=6, silent=FALSE){
 		NdviMaxMon=NdviMaxMon*(!Msk)+i*Msk #Mes indicado de 0 a n-1
 		if (!silent) setTxtProgressBar(pb, i)
 	}
-	if (!silent) close(pb) 
+	 
 	if (!silent) {
+		close(pb)
 		print('Processing rain files')
 		pb =txtProgressBar(min=1,max=nMonths,char='*',width=20,style=3)
 	}
@@ -602,10 +691,9 @@ rueObsEx = function (rainFl, viFl, preRainFl, nMonths=6, silent=FALSE){
 		setTxtProgressBar(pb, i)
 	}
 	RainFifo=RainFifo[,-1] #eliminamos primera columna de 0s
-	if (!silent) close(pb)
 	
 	if (!silent) {
-		print(paste('Processing rueObsEx for', nah, 'years'))
+		close(pb)			
 		pb =txtProgressBar(min=1,max=n,char='*',width=20,style=3)
 	}
 #browser()
@@ -632,8 +720,7 @@ rueObsEx = function (rainFl, viFl, preRainFl, nMonths=6, silent=FALSE){
 	}
 	
 	faux$band1=RueMax
-	close(pb)
-	print(summary(faux))
+	if (!silent) close(pb)
 	faux
 }
 
@@ -654,8 +741,7 @@ rueObsEx = function (rainFl, viFl, preRainFl, nMonths=6, silent=FALSE){
 # OUTPUTS:
 #       Return Rue Maximun map,
 
-aiObsEx <-
-		function (rainFl, viFl, petFl, preRainFl, prePetFl, FAO=FALSE, nMonths=6, silent=FALSE) {
+aiObsEx = function (rainFl, viFl, petFl, preRainFl, prePetFl, FAO=FALSE, nMonths=6, silent=FALSE) {
 	if (length(rainFl)!=length(viFl)) stop('rainFl & viFl must have the same length')
 	if (length(rainFl)%%12!=0) stop('rainFl must be multiply of 12')	
 	if (length(rainFl)<12) stop('rainFl length must be greater or equal than 12')
@@ -684,6 +770,7 @@ aiObsEx <-
 	
 	# Calcula NdviMax y NdviMaxMonth
 	if (!silent) {
+		print(paste('Processing aiObsEx for', nah, 'years ---'))
 		print('Processing vegetation index files')
 		pb =txtProgressBar(min=1,max=n,char='*',width=20,style=3)
 	}
@@ -694,9 +781,10 @@ aiObsEx <-
 		viMaxMon=viMaxMon*(!Msk)+i*Msk #Mes indicado de 0 a n-1
 		if (!silent) setTxtProgressBar(pb, i)
 	}
-	if (!silent) close(pb) 
-	
-	if (!silent) print('Processing data')
+	if (!silent) {
+		close(pb)
+		print('Processing data')
+	}
 	pb =txtProgressBar(min=1,max=nMonths,char='*',width=20,style=3)
 	#relleno fifo con los nMonths primeros meses    
 	for (i in 1:nMonths) {
@@ -706,10 +794,9 @@ aiObsEx <-
 	}
 	RainFifo=RainFifo[,-1] #eliminamos primera columna de 0s
 	PetFifo=PetFifo[,-1] #eliminamos primera columna de 0s
-	if (!silent) close(pb)
 	
 	if (!silent) {
-		print(paste('Processing aiObsEx for', nah, 'years'))
+		close(pb)		
 		pb =txtProgressBar(min=1,max=n,char='*',width=20,style=3)
 	}
 	#for each month in the serie
@@ -744,9 +831,7 @@ aiObsEx <-
 	}
 	faux$band1=IaMax
 	if (!silent) close(pb)
-	print(summary(faux))
 	faux
-	plot()
 }
 
 ###############################################
@@ -857,7 +942,7 @@ regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
 	bands=length(ndviFl)	
 	rows=GDALinfo(ndviFl[1])[1]
 	cols=GDALinfo(ndviFl[1])[2]
-	browser()
+	#browser()
 	#calculo size del buffer de lectura para que lea bloques de 5000 elementos aproximadamente
 	filelength=bands*rows*cols
 	#este es un size optimo para la funcion 'by'
@@ -867,7 +952,7 @@ regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
 	#tamaño del ultimo bloque
 	rest=filelength-(nblocks-1)*itemsToRead
 	
-	if (!silent) pb =txtProgressBar(min=0,max=nblocks,char='*',width=20,style=3)
+	if (!silent) pb=txtProgressBar(min=0,max=nblocks,char='*',width=20,style=3)
 	
 	depf=file(tmpFn1,'rb')
 	in1f=file(tmpFn2,'rb')	
@@ -893,21 +978,22 @@ regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
 		write.table(round(cn,4),append=TRUE,sep='\t',file=outf,col.names=FALSE,row.names=FALSE)
 
 		#actualizo progressbar
-		setTxtProgressBar(pb,i)
+		if (!silent) setTxtProgressBar(pb,i)
 	}
 	close(depf)
 	close(in1f)
 	close(in2f)
 	flush(outf)
 	close(outf)
-	close(pb)
 	
+	if (!silent) close(pb)
+	browser()
 	aux1=read.table(tmpFn4,header=FALSE,sep='\t')
 	aux2=readGDAL(ndviFl[1],silent=TRUE)
 	print('writing output files')
 	for (i in 1:7) {
 		aux2$band1=aux1[,i]
-		writeGDAL(aux2,outFl[i],drivername='RST',mvFlag=0)
+		writeGDAL(aux2,outFl[i],...)
 	}	
 	file.remove(tmpFn1)	
 	file.remove(tmpFn2)	
@@ -1026,20 +1112,3 @@ regStepDF=function (X){
 	# ----------devuelve vector completo para debug
 	#round(c(R12, R1Y, R2Y, DFS, TS12, TS1Y, TS2Y, PrX1X2,PrX1Y,PrX2Y,BPY1, BPY2, BY1, BY2, A, R2Y12, DFNUM, DFDEN, F,PrR2Y12, V2, DFNUM2, F2,PrR2Y12i, DFM, TM1, TM2, TMP1, TMP2),6)
 }
-
-
-
-trace(initial,browser)
-r2dRueWiz('rue.conf')
-f=readIniFile('rue.conf')
-g=readConfigFile('rue.conf')
-do=function() {
-	trace(createRunConfig,browser) 
-	#r2dRueWiz('rue.conf')
-	o=createRunConfig('rue.conf')
-	print(readLines('rue.conf'))
-	cat(sprintf('Original data: %d images, from %s to %s \n',o$sLength,format(o$sIniDate,'%b/%Y'),format(o$sEndDate,'%b/%Y')))
-	cat(sprintf('Analisys data: %d images, from %s to %s, %d Hidrological years \n',o$rLength,format(o$rIniDate,'%b/%Y'),format(o$rEndDate,'%b/%Y'),o$rYears))
-}
-
-
