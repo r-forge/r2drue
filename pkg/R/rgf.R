@@ -6,9 +6,10 @@
 ###############################################
 rgf.resume=function(x){
 	o=list(denx='',deny='',box='',summ='',vNA='')
-	deny=denx=box=cont=summ=0
+	deny=denx=box=summ=0
+	cont=1
 	pb=txtProgressBar(min=0,max=length(x),char='*',width=20,style=3)
-	for (i in x) {
+	for (i in x) {	
 		b=readGDAL(i,silent=T)$band1
 		d=density(b,n=75,na.rm=T)
 		denx=cbind(denx,d$x)
