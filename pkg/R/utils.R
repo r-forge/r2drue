@@ -75,8 +75,7 @@ readIniFile <- function(filename, token='=', commenttoken=';') {
 isSupportedGDALFormat <- function(dname) {
 	if (!require(rgdal)) { stop() }
 	gd <- .gdalWriteFormats()
-	res <- dname %in% gd[,1]
-	if (!res) { stop(paste(dname, "is not a supported RGDAL write file format." ) ) }
+	res <- dname %in% gd[,1]	
 	return(res)
 }
 

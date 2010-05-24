@@ -11,24 +11,175 @@
 #       r2dRue wiz is a procedure that can produced all the output involved in r2dRue analisys.
 #		It will be created a log file named as the config file but with its extension turned to .log
 r2dRueWiz = function(conf='', overwrite=FALSE, verbose=0) {
-	if (conf=='')  {
-		TmpConfig=create2dRueConfigFile()
-		r2dRueWiz(TmpConfig,overwrite,verbose)
-	} 
-	else {				
-		o=createRunConfig(conf)
-		showInfo(o)
-		switch(o$acction,
-				'm' = monitoring(o),
-				'a' = assesment(o),
-				'b' = {	assesment(o)
-					monitoring(o)
-				})
-		Save(log,conf.log)
+	
+	input=function(tag,default=''){
+		if (default!='') tag=paste(tag,' [',default,']',sep='')
+		repeat {
+			aux=readline(paste(tag,' ?: ',sep=''))
+			if (aux!='') {
+				return(aux);break
+			} 
+			if ((aux=='') & (default!='')) {
+				return(default);break
+			}			
+		}		
 	}
+	
+	year=function(x) {as.integer(format(x,'%Y'))}
+	month=function(x) {as.integer(format(x,'%m'))}
+	
+	canReadRgf = function(x) {		
+		if (!is.na(file.info(x)$isdir) & (file.info(x)$isdir==FALSE)) {			
+			aux=rgf.read(x)
+			if (!is.na(file.info(aux[1])$isdir) & (file.info(aux[1])$isdir==FALSE)){
+				img=readGDAL(aux[1],silent=TRUE)			
+				if (class(img)=='SpatialGridDataFrame')  {return(TRUE)}				
+			}
+		}
+		return(FALSE)
+	}
+	
+	############################## main
+	response=list(comment='',viRgf='',rainRgf='',petRgf='',mHidro='',acum='',pOut='',sYear='',sMonth='',yIni='',yEnd='',driver='',flag='')
+		
+	text="##########################################\n############# r2dRue Wizard ##############\n#                                        #\nR2dRue Wizard te permite crear estrsya ñldkfj gñdlkfj gñsdkfj gñsdkfj gsñdkfj gñsldkfj 
+			gñsdlkfj gñsdlkfjg ñsdlkfjg ñsdlkfj gñsdlkfj ñslkdj fñglksdj\n\n"
+	
+	#options(show.error.messages=FALSE)
+	if (conf!='') {
+		conaux=as.data.frame(readConfigFile(conf),stringsAsFactors=FALSE)
+		response[names(conaux)]=conaux
+	}
+	if (response$pOut=='') response$pOut=getwd()
+	if (response$driver=='') response$driver='RST'
+	if (response$flag=='') response$flag=-999
+	if (conf=='') conf=paste('rue',format(Sys.time(), "%d%b"),'.conf',sep='')
+	
+	try({
+		response$comment=input('Description of this run',response$comment)		
+		repeat {
+			aux=input('Output directory',response$pOut)
+			sub('[/\\]$','',aux)
+			if (!is.na(file.info(aux)$isdir) & (file.info(aux)$isdir!=FALSE)) {response$pOut=aux; break}
+			else print('the directory does not exist...create first')
+		}	
+		repeat {
+			aux=input('Vegetation Index raster group',response$viRgf)
+			if (canReadRgf(aux)) {response$viRgf=aux; break}
+			else print('can´t read this raster group...')
+		}
+		repeat {
+			aux=input('Precipitation raster group',response$rainRgf)			
+			if (canReadRgf(aux)) {response$rainRgf=aux; break}
+			else print('can´t read this raster group...')
+		}
+		repeat {
+			aux=input('PET raster group',response$petRgf)
+			if (canReadRgf(aux)) {response$petRgf=aux; break}
+			else print('can´t read this raster group...')
+		}
+		repeat {
+			aux=input('Start yyyy/mm of this raster groups',paste(response$sYear,response$sMonth,sep='/'))
+			er=try({aux=as.Date(paste(aux,'01',sep='/'))})		
+			if (class(er)!='try-error') {sDate=aux; break}
+			else print('not a date')
+		}
+		repeat {
+			aux=input('Start month of hydrological year [1-12]',response$mHidro)
+			er=try({iaux=as.integer(aux)})		
+			if (iaux %in% 1:12) {response$mHidro=iaux; break}
+			else print('it´s simple... [1-12]')
+		}
+	})
+	
+	#options(show.error.messages=TRUE)
+	svi=rgf.read(response$viRgf)
+	srain=rgf.read(response$rainRgf)
+	spet=rgf.read(response$petRgf)	
+	
+	#calculate dates of the elements in the serie 
+	sLength=length(svi)
+	sIniDate=sDate
+	sDates=seq(sIniDate,length.out=sLength,by='month')
+	sEndDate=sDates[sLength]
+	
+	sIniYear=year(sIniDate)
+	sEndYear=year(sEndDate)
+	
+	sHYears=sFailHYears=0
+	for (i in sIniYear:sEndYear) {
+		aux1=as.Date(paste(i,response$mHidro,1,sep='/'))
+		aux2=seq(aux1,length.out=12,by='month')[12]
+		if ((aux1 %in% sDates) & (aux2 %in% sDates)) sHYears=c(sHYears,i)  
+		else sFailHYears=c(sFailHYears,i)
+	}	
+	sHYears=sHYears[-1]
+	sFailHYears=sFailHYears[-1]
+		
+	#show info
+	cat(sprintf('\nOriginal data: %d images, from %s to %s',sLength,format(sIniDate,'%b/%Y'),format(sEndDate,'%b/%Y')))
+	cat(sprintf('\n             : %d Hidrological years, %s - %s starting at %s',length(sHYears),sHYears[1],sHYears[length(sHYears)],month.name[response$mHidro]))
+	cat(sprintf('\n             : %d Incomplete Hidrological years: %s\n',length(sFailHYears),paste(sFailHYears,collapse=', ')))
+		
+	repeat {
+		aux=input('Number of acummulation months for preceding rain',response$acum)
+		er=try({iaux=as.integer(aux)})		
+		if (iaux %in% 1:30) {response$acum=iaux; break}
+		else print('it´s simple... a integer great than 0')
+	}
+	
+	preDate=sort(seq(as.Date(paste(sHYears[1],response$mHidro,1,sep='/')),length.out=response$acum+1,by='-1 months')[-1])
+		
+	if (!(preDate[1] %in% sDates)) sHYears=sHYears[-1]
+	
+	repeat {
+		aux=input(sprintf('Start year of this run [%d-%d]',sHYears[1],sHYears[length(sHYears)]),response$yIni)
+		er=try({iaux=as.integer(aux)})		
+		if (iaux %in% sHYears) {response$yIni=iaux; break}
+		else sprintf('[%d-%d]',sHYears[1],sHYears[length(sHYears)])
+	}
+	repeat {
+		aux=input(sprintf('End year of this run [%d-%d]',sHYears[1],sHYears[length(sHYears)]),response$yEnd)
+		er=try({iaux=as.integer(aux)})		
+		if (iaux %in% sHYears) {response$yEnd=iaux; break}
+		else sprintf('[%d-%d]',sHYears[1],sHYears[length(sHYears)])
+	}
+	repeat {		
+		aux=input('GIS format for output images',response$driver)				
+		if (isSupportedGDALFormat(aux)) {response$driver=aux; break}
+		else print('a valid write GDAL driver')
+	}
+	repeat {
+		aux=input('Missing value for output images',response$flag)
+		er=try({iaux=as.integer(aux)})		
+		if (is.integer(iaux)) {response$flag=iaux; break}
+		else print('integer')
+	}
+	
+	response$sYear=year(sIniDate)
+	response$sMonth=month(sIniDate)
+	
+	fileName=input('File name for this config file',conf)	
+	write.table(t(as.data.frame(response)),fileName,sep='=',quote=FALSE,col.names=FALSE)
+	
+	#######
+	o=createRunConfig(fileName)
+	aux=input('Proceed with monitoring(m), assesment(a), both(b), none(n)','b')
+	switch(aux,
+			'm' = monitoring(o),
+			'a' = assesment(o),
+			'b' = {assesment(o);monitoring(o)}	
+	)	
+	cat('DONE... ')
+	o
 }
 
-
+###############################################
+# NAME: ruePlot
+# PURPOSE:
+#     Read an 2dRue configuration file and perform actions acordely 
+#     Caln calculate the monitoring, the assesment, both or none, acordely with the input.
+# INPUTS:
 rueplot=function(o,type='rain'){
 	if (type =='vimax') {
 		if (o$resume){
@@ -80,26 +231,18 @@ showInfo=function (o) {
 	aux=c(aux,'\n',sprintf('prePetRgf : %s',attr(o$ppet,'path')))
 	aux=c(aux,'\n',sprintf('            %s ...',paste(head(attr(o$ppet,'files'),10),collapse=' ')))
 	aux=c(aux,'\n\n',sprintf('---------- Spatial Info'))
-	aux=c(aux,'\n',sprintf('cols: %d  rows: %d  res: %f  proj: %s',o$gdal[1],o$gdal[2],o$gdal[6],attr(o$gdal,'projection')))	
-	if (o$assesment){
-	aux=c(aux,'\n\n',sprintf('---------- Assesment results at %s',attr(o$assesment,'date')))
-	aux=c(aux,'\n',sprintf('Min.   1st Qu.    Median      Mean   3rd Qu.      Max.      NA\'s'))
-	aux=c(aux,'\n',attr(o$rueMed,'summary'))
-	aux=c(aux,'\n',sprintf('rueMed    :'))
-	print(attr(o$rueEx,'summary'))
-	aux=c(aux,'\n',sprintf('rueMed    :'))
-	print(attr(o$aiMed,'summary'))
-	}else{aux=c(aux,'\n\n',sprintf('---------- Assesment results not updated'))}
-	if (o$assesment){
-		aux=c(aux,'\n\n',sprintf('---------- Monitoring results  %s',attr(o$monitoring,'date')))
-		aux=c(aux,'\n',sprintf('          Min.   1st Qu.    Median      Mean   3rd Qu.      Max.      NA\'s'))
-		aux=c(aux,'\n',attr(o$rueMed,'summary'))
-		aux=c(aux,'\n',sprintf('rueMed    :'))
-		print(attr(o$rueEx,'summary'))
-		aux=c(aux,'\n',sprintf('rueMed    :'))
-		print(attr(o$aiMed,'summary'))
-	}else{aux=c(aux,'\n\n',sprintf('---------- Monitoring results not updated'))}
+	aux=c(aux,'\n',sprintf('cols: %d  rows: %d  res: %f  proj: %s',o$gdal[1],o$gdal[2],o$gdal[6],attr(o$gdal,'projection')))
+	aux=c(aux,'\n')
 	cat(aux)
+	if (o$assesment){
+		cat(c('\n',paste('---------- Assesment results at ',attr(o$assesment,'date')),'\n'))		
+		print(attr(o$assesment,'summary'))
+	}else{cat(c('\n',sprintf('---------- Assesment results not updated')))}
+	if (o$monitoring){
+		cat(c('\n',paste('---------- Monitoring results at ',attr(o$monitoring,'date')),'\n'))
+		print(attr(o$monitoring,'summary'))
+	}else{cat(c('\n',sprintf('---------- Monitoring results not updated')))}
+	
 }
 
 ###############################################
@@ -109,18 +252,14 @@ showInfo=function (o) {
 # OUTPUTS:
 readConfigFile=function (conf) {	
 	co=list(
-			comment='',pOut='',mHidro='',acum='',viRgf='',rainRgf='',sYear='',sMonth='',
-			yIni='',yEnd='',driver='',flag='',acction='',
-			petRgf='',tmaxRgf='',tminRgf='',tmedRgf='',radRgf=''	
+			pOut='',mHidro='',acum='',viRgf='',rainRgf='',sYear='',sMonth='',
+			yIni='',yEnd='',driver='',flag='',petRgf='',
+			comment='',acction=''
 	)
-	obligatorios=names(co)[1:13]
-	obligatoriosPet=names(co)[15:17]
+	obligatorios=names(co)[1:12]	
 	f=readIniFile(conf)
-	co[names(f)]=f
-	if (any(co[obligatorios] == '')) stop(sprintf('Faltan parametros obligatorios en %s , check the conf file',conf))
-	if (co$petRgf == '') {
-		if (any(co[obligatoriosPet] == '')) stop(sprintf('Faltan parametros obligatorios para calculo de PET. Check the %s file',conf))
-	}
+	co[names(f)]=f	
+	if (any(co[obligatorios] == '')) stop(sprintf('Faltan parametros obligatorios en %s , check the conf file',conf))	
 	co
 }
 
@@ -133,16 +272,15 @@ readConfigFile=function (conf) {
 # OUTPUTS:
 createRunConfig=function (conf){
 	#campos forzados a enteros
-	enteros=c('mHidro','acum','sYear','sMonth','yIni','yEnd','flag')
+	enteros=c('mHidro','acum','sYear','sMonth','yIni','yEnd')
 	#definicion inicial
 	o=list(
 		#from config file
 		comment='',pOut='',mHidro='',acum='',viRgf='',rainRgf='',sYear='',sMonth='',
-		yIni='',yEnd='',driver='',flag='',acction='',petRgf='',tmaxRgf='',tminRgf='',tmedRgf='',radRgf='',
+		yIni='',yEnd='',driver='',flag='',acction='',petRgf='',
 		#calculated		
 		vi='',rain='',pet='',ppet='',prain='',rLength='',rIniDate='',rEndDate='',rDates='',rPreDates='',
-		svi='',srain='',spet='',sIniDate='',sEndDate='',sDates='',sLength='',
-		stmax='',stmin='',stmed='',srad='',
+		svi='',srain='',spet='',sIniDate='',sEndDate='',sDates='',sLength='',		
 		#calculated spaciales
 		gdal='',
 		#calculates extern
@@ -155,11 +293,12 @@ createRunConfig=function (conf){
 	co=readConfigFile(conf)
 	o[names(co)]=co #copy fields from config file	
 	o[enteros]=as.integer(co[enteros]) #pasar a enteros	
-	
+		
 	#read rgf files
 	o$svi=rgf.read(o$viRgf)
 	o$srain=rgf.read(o$rainRgf)
 	o$spet=rgf.read(o$petRgf)
+	stopifnot(length(o$spet)==length(o$svi))
 	
 	#calculate dates of the elements in the serie 
 	o$sLength=length(o$svi)
@@ -175,8 +314,17 @@ createRunConfig=function (conf){
 		
 	o$rPreDates=sort(seq(o$rIniDate,length.out=o$acum+1,by='-1 month')[-1])
 
-	if (!all(o$rDates %in% o$sDates)) stop('check start and initial dates')
+	if (!all(o$rDates %in% o$sDates)) {
+		print(o$rDates)
+		print(o$sDates)
+		stop('check start and initial dates')
+	}
 	if (!all(o$rPreDates %in% o$sDates)) stop('check start and initial dates')
+	
+	#spatial atributes
+	o$gdal=GDALinfo(o$svi[1],silent=TRUE)	
+	if (!isSupportedGDALFormat(o$driver)) stop('not supported GDAL driver')
+	if (!is.finite(as.numeric(o$flag))) stop('not a valid missing value flag ')
 	
 	#calculate vi,rain,pet,ppet and prain series
 	o$vi=o$svi[o$sDates %in% o$rDates]
@@ -196,13 +344,7 @@ createRunConfig=function (conf){
 	attr(o$pet,'files')=basename(o$pet)
 	attr(o$ppet,'files')=basename(o$ppet)
 	attr(o$prain,'files')=basename(o$prain)	
-	
-	if (o$petRgf == '') {
 		
-	}
-	
-	o$gdal=GDALinfo(o$vi[1],silent=TRUE)	
-	
 	#show
 	showInfo(o)
 	#return	
@@ -220,44 +362,55 @@ create2dRueConfigFile = function(conf='') {
        gñsdlkfj gñsdlkfjg ñsdlkfjg ñsdlkfj gñsdlkfj ñslkdj fñglksdj\n\n"
 	
 	quest=c(
-			'comment','Description of this run?:',date(),
-			'mHidro','Start month of hydrological year [1-12]?:','',
-			'acum','Number of acummulation months for preceding rain:?','',
-			'pOut','Output directory:?','',
-			'viRgf','Vegetation Index raster group?:','',
-			'rainRgf','Precipitation raster group?:','',
-			'sYear','Start year of the series?:','',
-			'sMonth','Start month of the series?:','',
-			'petRgf','PET raster group or leave blank to create it?: ','',
-			'tmaxRgf','Tmax raster group?:','',
-			'tmedRgf','Tmed raster group?:','',
-			'tminRgf','Tmin raster group?:','',
-			'radRgf','Extraterrestial solar radiation raster group?:','',
-			'yIni','Start year of this run?:','',
-			'yEnd','End year of this run?:','',
-			'driver','GIS format for output images','RST',
-			'flag','Missing value','-999',
-			'acction','Proceed with monitoring(m), assesment(a), both(b), none(n)?:','b',
-			'fileName','Name of this parameter file?:', paste('rue',format(Sys.time(), "%Y%m%d%H%M"),'.conf',sep='')
+		'comment','Description of this run ','',
+		'mHidro','Start month of hydrological year [1-12] ','',
+		'acum','Number of acummulation months for preceding rain ','',
+		'pOut','Output directory ','',
+		'viRgf','Vegetation Index raster group ','',
+		'rainRgf','Precipitation raster group ','',
+		'sYear','Start year of the series ','',
+		'sMonth','Start month of the series ','',
+		'petRgf','PET raster group or leave blank to create it ','',			
+		'yIni','Start year of this run ','',
+		'yEnd','End year of this run ','',
+		'driver','GIS format for output images ','RST',
+		'flag','Missing value for output images ','-999',
+		'acction','Proceed with monitoring(m), assesment(a), both(b), none(n) ','b',		
+		'tmaxRgf','Tmax raster group ','',
+		'tmedRgf','Tmed raster group ','',
+		'tminRgf','Tmin raster group ','',
+		'radRgf','Extraterrestial solar radiation raster group ','',
+		'fileName','Name of this parameter file ', paste('rue',format(Sys.time(), "%d%b"),'.conf',sep='')
 	)
+	
 	quest=matrix(quest,ncol=3, byrow=TRUE, dimnames=list(NULL,c('var','question','defaultvalue')))
 	response=as.data.frame(t(quest[,3]),stringsAsFactor=F)
-	names(response)=quest[,1]		
-	nq=nrow(quest)
-	
-	#err=try(rue=readIniFile(conf),TRUE)
-	#if (class(err)=='try-error') {stop('generer nuevo')}
+	names(response)=quest[,1]
+	if (conf!='') {
+		conaux=as.data.frame(readConfigFile(conf))
+		response[names(conaux)]=conaux
+	}
+	nq=1:(nrow(quest)-5) #out Pet data and filename
+	nqp=(nrow(quest)-5):(nrow(quest)-1)	
 	cat(rep('\n',times=200))
 	cat(text)
 	#writeLines(strwrap(text,60))
-	flush.console()
-	for (i in 1:nq) {
-		aux=readline(paste(quest[i,2],quest[i,3]))
+	flush.console()	
+	for (i in nq) {
+		if (response[i]=='') aux=readline(paste(quest[i,2],':?'))  
+		else aux=readline(paste(quest[i,2],'[',response[[i]],']:?',sep=''))
 		if (aux!='') response[i]=aux
 	}
-		
+	# Pet data
+	if (response['petRgf']=='') {		
+		print('Introduce datos para calculo de PET')
+		for (i in nqp){
+			aux=readline(quest[i,2])
+			if (aux!='') response[i]=aux
+		}	
+	}
 	conffile=as.vector(response$fileName)	
-	write.table(t(response[-nq]),conffile,sep='=',quote=F,col.names=F)
+	write.table(t(response[-nrow(quest)]),conffile,sep='=',quote=F,col.names=F)
 	conffile	
 }
 
@@ -311,7 +464,7 @@ initial=function (filename){
 			img=readGDAL(tmin[1])
 			solarRad12M(img,aux,drivername=o$driver,mvFlag=o$flag)
 		}
-		batchPetHgsm(o$mesini,tmin,tmax,tmed,rad)
+		#batchPetHgsm(o$mesini,tmin,tmed,tmax,rad)
 	}
 
 	
@@ -436,14 +589,19 @@ assesment = function(o) {
 	})
 	#update o
 	if (!class(er)=='try-error'){
-		o$rueEx=outNames[1]; attr(o$rueEx,'summary')=summary(readGDAL(outNames[1])$band1,silent=T)
-		o$rueMed=outNames[2]; attr(o$rueMed,'summary')=summary(readGDAL(outNames[2])$band1,silent=T)
-		o$aiEx=outNames[3]; attr(o$aiEx,'summary')=summary(readGDAL(outNames[3])$band1,silent=T)
-		o$aiMed=outNames[4]; attr(o$aiMed,'summary')=summary(readGDAL(outNames[4])$band1,silent=T)	
+		o$rueEx=outNames[1];
+		o$rueMed=outNames[2];
+		o$aiEx=outNames[3];
+		o$aiMed=outNames[4];	
 		o$assesment=TRUE 
 		attr(o$assesment,'date')=format(Sys.time(),'%d %b %Y %H:%M:%S')
-		for (i in outNames)
-		attr(o$aiMed,'summary')=summary(readGDAL(outNames[4])$band1,silent=T)
+		aux=matrix(0, nrow = 4, ncol=7, dimnames = list(c('rueObsMed','rueObsEx','aiObsMed','aiObsEx'),c("Min","1st Qu","Median","Mean","3rd Qu","Max","NA's")))
+		for (i in 1:4) {	
+			aux1=summary(readGDAL(outNames[i],silent=TRUE)$band1)
+			if (length(aux1)==6) aux1=c(aux1,0)
+			aux[i,]=aux1
+		}
+		attr(o$assesment,'summary')=aux
 		assign(originalo,o,envir=parent.frame())
 	}
 }
@@ -494,14 +652,23 @@ monitoring = function(o) {
 	})
 	#update o
 	if (!class(er)=='try-error'){
-		o$f1=outNames[1]; attr(o$f1,'summary')=summary(readGDAL(outNames[1],silent=T)$band1)
-		o$f2=outNames[2]; attr(o$f2,'summary')=summary(readGDAL(outNames[2],silent=T)$band1)
-		o$f3=outNames[3]; attr(o$f3,'summary')=summary(readGDAL(outNames[3],silent=T)$band1)
-		o$f4=outNames[4]; attr(o$f4,'summary')=summary(readGDAL(outNames[4],silent=T)$band1)	
-		o$f5=outNames[5]; attr(o$f5,'summary')=summary(readGDAL(outNames[5],silent=T)$band1)
-		o$f6=outNames[6]; attr(o$f6,'summary')=summary(readGDAL(outNames[6],silent=T)$band1)
-		o$f7=outNames[7]; attr(o$f7,'summary')=summary(readGDAL(outNames[7],silent=T)$band1)
-		o$monitoring=TRUE ; attr(o$monitoring,'date')=format(Sys.time(),'%d %b %Y %H:%M:%S')
+		o$f1=outNames[1]
+		o$f2=outNames[2]
+		o$f3=outNames[3]
+		o$f4=outNames[4]	
+		o$f5=outNames[5]
+		o$f6=outNames[6]
+		o$f7=outNames[7]
+		browser()
+		o$monitoring=TRUE
+		attr(o$monitoring,'date')=format(Sys.time(),'%d %b %Y %H:%M:%S')
+		aux=matrix(0, nrow = 7, ncol=7, dimnames = list(c('f1','f2','f3','f4','f5','f6','f7'),c("Min","1st Qu","Median","Mean","3rd Qu","Max","NA's")))
+		for (i in 1:7) {
+			aux1=summary(readGDAL(outNames[i],silent=TRUE)$band1)
+			if (length(aux1)==6) aux1=c(aux1,0)
+			aux[i,]=aux1
+		}
+		attr(o$monitoring,'summary')=aux		
 		assign(originalo,o,envir=parent.frame())
 	}
 }
@@ -631,13 +798,9 @@ aiObsMe=function (rainFl, petFl, FAO=FALSE, silent=FALSE){
 #       preRainFl:  File names list of previous rainfall grids 
 #       Nma: cte de acumulacion
 #       silent: logical Flag; if TRUE, comments outputs are supressed
-#
-#
-#
-#
-#
 # OUTPUTS:
 #       Return Rue Maximun map, and the Rue Max Month map
+# TODO: Fallo con acum=1 .. ver = en aiObsEx
 
 rueObsEx = function (rainFl, viFl, preRainFl, nMonths=6, silent=FALSE){
 	
@@ -987,7 +1150,7 @@ regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
 	close(outf)
 	
 	if (!silent) close(pb)
-	browser()
+
 	aux1=read.table(tmpFn4,header=FALSE,sep='\t')
 	aux2=readGDAL(ndviFl[1],silent=TRUE)
 	print('writing output files')

@@ -44,8 +44,7 @@ rgf.plot=function(o,type='rain'){
 	}
 	if (type=='density') {
 		plot(o$deny~o$denx,type='l')
-	}
-	
+	}	
 }
 
 ###############################################
