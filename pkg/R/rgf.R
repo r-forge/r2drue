@@ -5,10 +5,10 @@
 # OUTPUTS:
 ###############################################
 rgf.resume=function(x){
-	o=list(denx='',deny='',box='',summ='',vNA='')
+	o=list(denx='',deny='',box='',summ='',vNA='',size=length(x))
 	deny=denx=box=summ=0
 	cont=1
-	pb=txtProgressBar(min=0,max=length(x),char='*',width=20,style=3)
+	pb=txtProgressBar(min=0,max=o$size,char='*',width=20,style=3)
 	for (i in x) {	
 		b=readGDAL(i,silent=T)$band1
 		d=density(b,n=75,na.rm=T)
@@ -37,7 +37,7 @@ rgf.plot=function(o,type='rain'){
 	if (type=='rain') {
 		barplot(o$summ[6,],col=4,names.arg=1:200)
 		barplot(o$summ[4,],add=T,col=3)
-		barplot((o$summ[6,]==0)*-10,add=T,col=2)
+		barplot((o$summ[6,]==0)*-10,add=T,col='red')
 	}
 	if (type=='box') {
 		boxplot(o$box)

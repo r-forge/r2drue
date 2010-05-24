@@ -1,3 +1,5 @@
+
+r2dRueWiz = function(conf='', overwrite=FALSE, verbose=0) {
 ###############################################
 # NAME: r2dRueWiz
 # PURPOSE:
@@ -9,9 +11,7 @@
 #       verbose: level of log detail
 # OUTPUTS:
 #       r2dRue wiz is a procedure that can produced all the output involved in r2dRue analisys.
-#		It will be created a log file named as the config file but with its extension turned to .log
-r2dRueWiz = function(conf='', overwrite=FALSE, verbose=0) {
-	
+#		It will be created a log file named as the config file but with its extension turned to .log	
 	input=function(tag,default=''){
 		if (default!='') tag=paste(tag,' [',default,']',sep='')
 		repeat {
@@ -174,13 +174,13 @@ r2dRueWiz = function(conf='', overwrite=FALSE, verbose=0) {
 	o
 }
 
-###############################################
+rueplot=function(o,type='rain',scope='run',var='vi',pixel=1,col=c('blue','green4','salmon','gray')){
+##############################################
 # NAME: ruePlot
 # PURPOSE:
 #     Read an 2dRue configuration file and perform actions acordely 
 #     Caln calculate the monitoring, the assesment, both or none, acordely with the input.
-# INPUTS:
-rueplot=function(o,type='rain'){
+# INPUTS:	
 	if (type =='vimax') {
 		if (o$resume){
 			nf <- layout(matrix(c(1,1,2,3,3,4), 3, 2))
@@ -199,20 +199,50 @@ rueplot=function(o,type='rain'){
 		} else (stop('Resume not done... use resume() function first'))
 	}
 	if (type=='box') {
-		boxplot(o$box)
+		if (var=='vi') boxplot(o$RESvi$box,names=format(o$rDates,'%b%y'),las=3,main='Vegetation Index boxplot',ylab='vegetation index')
+		if (var=='rain') boxplot(o$RESrain$box,names=format(o$rDates,'%b%y'),las=3,main='Precipitation boxplot',ylab='rain (mm)')
 	}
 	if (type=='density') {
-		plot(o$deny~o$denx,type='l')
+		if (var=='vi') plot(o$RESvi$deny~o$RESvi$denx,type='l',col=c(1:12))
+		if (var=='rain') plot(o$RESrain$deny~o$RESrain$denx,type='l',col=c(1:12))
 	}
-	
+	if (type=='rain') {
+		barplot(o$RESrain$summ[6,],col=4,names=format(o$rDates,'%b%y'),las=3,main='Precipitation',ylab='rain (mm)')
+		barplot(o$RESrain$summ[4,],add=T,col=3)
+		barplot((o$RESrain$summ[6,]==0)*-10,add=T,col='red')
+		
+	}
+	if (type=='pixel'){
+		if (o$resume) {		
+			pos=pixel*o$sLength*4
+			in1=file(o$STKsvi,'rb')
+			in2=file(o$STKsrain,'rb')
+			seek(in1,pos)
+			seek(in2,pos)
+			bvi  =readBin(in1,numeric(),o$sLength,4)
+			brain=readBin(in2,numeric(),o$sLength,4)		
+			maxbrain=max(brain)			
+			posmaxvi=which(bvi==max(bvi))
+			#preposmaxvi=o$sDate[which(bvi==max(bvi))-o$acum]
+			plot(o$sDate,bvi,type='l',ylim=c(0,1),col=col[2],ylab='vegetation index & rain (scaled)',xaxt='n',main=paste('VI & Rain for pixel ',pixel))
+			axis.Date(1, at=seq(o$sIniDate,o$sEndDate,by='year'),las=3,cex.axis=1)
+			# TODO: arreglar cuando - acum es negativo...
+			if (length(posmaxvi)!=0) rect(o$sDates[posmaxvi-o$acum],0,o$sDates[posmaxvi],1,density=10,col=col[4],border=col[3])			
+			lines(o$sDate,brain/maxbrain,type='h',col=col[1])
+			abline(v=posmaxvi,col=col[3])
+			lines(o$sDate,bvi,type='l',col=col[2],lwd=2)
+			close(in1)
+			close(in2)
+		} else (stop('Resume not done... ejecute resume() function first'))		
+	}
 }
 
+showInfo=function (o) {
 ###############################################
 # NAME: assestment
 # PURPOSE: Lee un fo
 # INPUTS:
-# OUTPUTS:
-showInfo=function (o) {
+# OUTPUTS:	
 	#print info
 	aux='\n'
 	aux=c(aux,'\n',sprintf('################### r2dRue RUN: %s',o$comment))
@@ -560,6 +590,25 @@ initial=function (filename){
 	o
 }
 
+
+resume=function(o){
+	#parameter´s name in parent frame (to do a 'by reference')
+	originalo=deparse(substitute(o))
+	o$resume=FALSE
+	#outNames
+	outNames=c('svi.stk','srain.stk','')
+	outNames=paste(o$pOut,outNames,'.',o$driver)
+	#reasterStack
+	rasterStack(o$svi,outNames[1],interleave='BIP')
+	rasterStack(o$srain,outNames[2],interleave='BIP')
+	o$STKsvi=outNames[1]
+	o$STKsrain=outNames[2]
+	
+	o$RESvi=rgf.resume(o$vi)
+	o$RESrain=rgf.resume(o$rain)	
+	o$resume=TRUE
+	assign(originalo,o,envir=parent.frame())
+}
 
 ###############################################
 # NAME: assestment
