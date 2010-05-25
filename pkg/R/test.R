@@ -4,48 +4,41 @@
 #
 # caso de tener las PET listas
 
-library(r2dRue)
+#library(r2dRue)
 
-basePath='c:/SpainAnalysis'
+library(rgdal)
+library(raster)
 
-viPath='c:/SpainAnalysis/vi'
-rainPath='c:/SpainAnalysis/rain'
-petPath='c:/SpainAnalysis/pet'
-outPath='c:/SpainAnalysis/out'
+source('r2drue.r')
+source('rgf.r')
+source('etp.r')
+source('utils.r')
 
-setwd(basePath)
+setwd(' poner aqui tu directorio de trabajo')
 
-vi=rgf.read('c:/SpainAnalysis/vi/vi.rgf')
-rain=rgf.read('c:/SpainAnalysis/vi/vi.rgf')
+editr2dRFile('chile.conf')
 
-r2dRueWiz()
+och=r2dRRead('chile.conf')
 
-#esto crea un fich de configuracion, y todos las salidas pertinentes en un dir indicado
-# salidas: out
-#			rain.rgf, vi.rgf, pet.rgf, prain.rgf, ppet.rgf
-#			name.conf, name.LOG, name.RDTA
-#
-#		   assesment
-#			rueMed, rueEx, aiMed, aiEx
-#
-#		   monitoring	
-#			f1,f2,f3,f4,f5,f6,f7
-#			viMean1970, viMean1971...
-#			aiMean1970, aiMean1971...
-#			
-r2dRueWiz() #para crear otra ejecucion...
+showinfo(och)
 
-#o bien modificar con el bloc de notas el txto de name.conf
+assessment(och)
+showinfo(och)
+r2dRplot(och,'assesment')
 
-r2dRueWiz('name.conf')
+monitoring(och)
+showinfo(och)
+r2dRplot(och,'monitoring')
 
-rop=createRunOpt('name.conf')
+resume(och)
+r2dRplot(och,'box',var='vi')
+r2dRplot(och,'box',var='rain')
+r2dRplot(och,'rain')
+r2dRplot(och,'density',var='vi')
+r2dRplot(och,'pixel',pixel=316)
 
-rop$yIni=1970
-
-monitoring(rop)
-
-assesment(rop)
+i=100
+r2dRplot(och,'pixel',pixel=316);i=i+1;
 
 
 

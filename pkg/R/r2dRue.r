@@ -1,5 +1,5 @@
 
-r2dRueWiz = function(conf='', overwrite=FALSE, verbose=0) {
+editr2dRfile = function(conf='', overwrite=FALSE, verbose=0) {
 ###############################################
 # NAME: r2dRueWiz
 # PURPOSE:
@@ -42,19 +42,19 @@ r2dRueWiz = function(conf='', overwrite=FALSE, verbose=0) {
 	############################## main
 	response=list(comment='',viRgf='',rainRgf='',petRgf='',mHidro='',acum='',pOut='',sYear='',sMonth='',yIni='',yEnd='',driver='',flag='')
 		
-	text="##########################################\n############# r2dRue Wizard ##############\n#                                        #\nR2dRue Wizard te permite crear estrsya ñldkfj gñdlkfj gñsdkfj gñsdkfj gsñdkfj gñsldkfj 
-			gñsdlkfj gñsdlkfjg ñsdlkfjg ñsdlkfj gñsdlkfj ñslkdj fñglksdj\n\n"
+	text="##########################################\n############# r2dRue Wizard ##############\n#                                        #\n\n"
 	
 	#options(show.error.messages=FALSE)
-	if (conf!='') {
+	try({
 		conaux=as.data.frame(readConfigFile(conf),stringsAsFactors=FALSE)
 		response[names(conaux)]=conaux
-	}
+	})
 	if (response$pOut=='') response$pOut=getwd()
 	if (response$driver=='') response$driver='RST'
 	if (response$flag=='') response$flag=-999
 	if (conf=='') conf=paste('rue',format(Sys.time(), "%d%b"),'.conf',sep='')
 	
+	cat(text)
 	try({
 		response$comment=input('Description of this run',response$comment)		
 		repeat {
@@ -160,60 +160,75 @@ r2dRueWiz = function(conf='', overwrite=FALSE, verbose=0) {
 	response$sMonth=month(sIniDate)
 	
 	fileName=input('File name for this config file',conf)	
-	write.table(t(as.data.frame(response)),fileName,sep='=',quote=FALSE,col.names=FALSE)
-	
-	#######
-	o=createRunConfig(fileName)
-	aux=input('Proceed with monitoring(m), assesment(a), both(b), none(n)','b')
-	switch(aux,
-			'm' = monitoring(o),
-			'a' = assesment(o),
-			'b' = {assesment(o);monitoring(o)}	
-	)	
-	cat('DONE... ')
-	o
+	write.table(t(as.data.frame(response)),fileName,sep='=',quote=FALSE,col.names=FALSE)	
+	return()
 }
 
-rueplot=function(o,type='rain',scope='run',var='vi',pixel=1,col=c('blue','green4','salmon','gray')){
+r2dRplot=function(o,type='rain',scope='run',var='vi',pixel=1,col=c('blue','green4','salmon','gray')){
 ##############################################
 # NAME: ruePlot
 # PURPOSE:
 #     Read an 2dRue configuration file and perform actions acordely 
 #     Caln calculate the monitoring, the assesment, both or none, acordely with the input.
-# INPUTS:	
-	if (type =='vimax') {
-		if (o$resume){
-			nf <- layout(matrix(c(1,1,2,3,3,4), 3, 2))
-			layout.show(nf)
-			a=readGDAL(o$viMax)
+# INPUTS:
+	if (o$resume) {
+	switch(type,		
+		'vimax'= {		
+			nf <- layout(matrix(c(1,1,2,3,3,4), 3, 2))			
+			a=readGDAL(o$viMax,silent=TRUE)
 			image(a)
 			title(main='vi maximum')
-			plot(density(a$band1,rm.na=T))
-			a=readGDAL(o$whenviMax)
+			plot(density(a$band1,na.rm=TRUE),main='',xlab='vi')
+			a=readGDAL(o$viMaxWhen)
 			image(a)
 			title(main='when vi maximum')
-			hist(a$band1,breaks=o$rLength)
-			barplot(o$summ[6,],col=4,names.arg=1:200)
-			barplot(o$summ[4,],add=T,col=3)
-			barplot((o$summ[6,]==0)*-10,add=T,col=2)
-		} else (stop('Resume not done... use resume() function first'))
-	}
-	if (type=='box') {
-		if (var=='vi') boxplot(o$RESvi$box,names=format(o$rDates,'%b%y'),las=3,main='Vegetation Index boxplot',ylab='vegetation index')
-		if (var=='rain') boxplot(o$RESrain$box,names=format(o$rDates,'%b%y'),las=3,main='Precipitation boxplot',ylab='rain (mm)')
-	}
-	if (type=='density') {
-		if (var=='vi') plot(o$RESvi$deny~o$RESvi$denx,type='l',col=c(1:12))
-		if (var=='rain') plot(o$RESrain$deny~o$RESrain$denx,type='l',col=c(1:12))
-	}
-	if (type=='rain') {
-		barplot(o$RESrain$summ[6,],col=4,names=format(o$rDates,'%b%y'),las=3,main='Precipitation',ylab='rain (mm)')
-		barplot(o$RESrain$summ[4,],add=T,col=3)
-		barplot((o$RESrain$summ[6,]==0)*-10,add=T,col='red')
-		
-	}
-	if (type=='pixel'){
-		if (o$resume) {		
+			hist(o$sDates[a$band1],xlab='months',breaks='months',format='%b%y',las=3,freq=T)			
+		},
+		'box'= {
+			if (var=='vi') boxplot(o$RESvi$box,names=format(o$rDates,'%b%y'),las=3,main='Vegetation Index boxplot',ylab='vegetation index')
+			if (var=='rain') boxplot(o$RESrain$box,names=format(o$rDates,'%b%y'),las=3,main='Precipitation boxplot',ylab='rain (mm)')		
+		},
+		'density'= {		
+			if (var=='vi') plot(o$RESvi$deny~o$RESvi$denx,type='l',col=c(1:12))
+			if (var=='rain') plot(o$RESrain$deny~o$RESrain$denx,type='l',col=c(1:12))
+		},
+		'rain'= {
+			barplot(o$RESrain$summ[6,],col=4,names=format(o$rDates,'%b%y'),las=3,main='Precipitation',ylab='rain (mm)')
+			barplot(o$RESrain$summ[4,],add=T,col=3)
+			barplot((o$RESrain$summ[6,]==0)*-10,add=T,col='red')		
+		},
+		'assesment1'= {
+			a=readGDAL(o$rueEx,silent=TRUE)
+			a$rueObsEx=a$band1
+			a$rueObsMe=readGDAL(o$rueMe,silent=TRUE)$band1
+			a$aiObsEx=readGDAL(o$aiEx,silent=TRUE)$band1
+			a$aiObsMe=readGDAL(o$aiMe,silent=TRUE)$band1
+			nf <- layout(matrix(c(1,2), 1, 2))
+			layout.show(nf)						
+			plot(a$rueObsEx~a$aiObsEx,main='rue vs ai - Extremo')
+			plot(a$rueObsMe~a$aiObsMe,main='rue vs ai - Medio', xlim=c(0,6),ylim=c(0,0.02))
+			
+		},
+		'assesment2'= {
+			a=readGDAL(o$rueEx,silent=TRUE)
+			a$rueObsEx=a$band1
+			a$rueObsMe=readGDAL(o$rueMe,silent=TRUE)$band1
+			a$aiObsEx=readGDAL(o$aiEx,silent=TRUE)$band1
+			a$aiObsMe=readGDAL(o$aiMe,silent=TRUE)$band1
+			nf <- layout(matrix(c(1,2), 1, 2))			
+			plot(spplot(a,zcol=c('rueObsEx','rueObsMe','aiObsEx','aiObsMe')))
+		},
+		'monitoring'= {
+			a=readGDAL(o$f1,silent=TRUE)
+			a$rueObsEx=a$f1band1
+			a$rueObsMe=readGDAL(o$f2,silent=TRUE)$band1
+			a$aiObsEx=readGDAL(o$f3,silent=TRUE)$band1
+			a$f4=readGDAL(o$f4,silent=TRUE)$band1
+			nf <- layout(matrix(c(1,2), 1, 2))
+			layout.show(nf)
+			plot(spplot(a,zcol=c('rueObsEx','rueObsMe','aiObsEx','aiObsMe')))
+		},
+		'pixel'={				
 			pos=pixel*o$sLength*4
 			in1=file(o$STKsvi,'rb')
 			in2=file(o$STKsrain,'rb')
@@ -229,12 +244,12 @@ rueplot=function(o,type='rain',scope='run',var='vi',pixel=1,col=c('blue','green4
 			# TODO: arreglar cuando - acum es negativo...
 			if (length(posmaxvi)!=0) rect(o$sDates[posmaxvi-o$acum],0,o$sDates[posmaxvi],1,density=10,col=col[4],border=col[3])			
 			lines(o$sDate,brain/maxbrain,type='h',col=col[1])
-			abline(v=posmaxvi,col=col[3])
+			abline(v=o$sDates[posmaxvi],col=col[3])
 			lines(o$sDate,bvi,type='l',col=col[2],lwd=2)
 			close(in1)
 			close(in2)
-		} else (stop('Resume not done... ejecute resume() function first'))		
-	}
+		})
+	} else (stop('Resume not done... ejecute resume() function first'))
 }
 
 showInfo=function (o) {
@@ -272,6 +287,7 @@ showInfo=function (o) {
 		cat(c('\n',paste('---------- Monitoring results at ',attr(o$monitoring,'date')),'\n'))
 		print(attr(o$monitoring,'summary'))
 	}else{cat(c('\n',sprintf('---------- Monitoring results not updated')))}
+	cat('\n')
 	
 }
 
@@ -289,7 +305,7 @@ readConfigFile=function (conf) {
 	obligatorios=names(co)[1:12]	
 	f=readIniFile(conf)
 	co[names(f)]=f	
-	if (any(co[obligatorios] == '')) stop(sprintf('Faltan parametros obligatorios en %s , check the conf file',conf))	
+	if (any(co[obligatorios] == '')) stop(sprintf('Faltan parametros obligatorios en %s, check the conf file',conf))	
 	co
 }
 
@@ -300,7 +316,7 @@ readConfigFile=function (conf) {
 # INPUTS:
 #     conf: lista de configuracion basica (sin campos calculados) 
 # OUTPUTS:
-createRunConfig=function (conf){
+readr2dRfile=function (conf){
 	#campos forzados a enteros
 	enteros=c('mHidro','acum','sYear','sMonth','yIni','yEnd')
 	#definicion inicial
@@ -381,229 +397,26 @@ createRunConfig=function (conf){
 	o	
 }
 
-###############################################
-# NAME: create2dRueConfig
-# PURPOSE:
-# INPUTS:
-# OUTPUTS:
-# Return the name of a 2dRue .conf file 
-create2dRueConfigFile = function(conf='') {
-	text="##########################################\n############# r2dRue Wizard ##############\n#                                        #\nR2dRue Wizard te permite crear estrsya ñldkfj gñdlkfj gñsdkfj gñsdkfj gsñdkfj gñsldkfj 
-       gñsdlkfj gñsdlkfjg ñsdlkfjg ñsdlkfj gñsdlkfj ñslkdj fñglksdj\n\n"
-	
-	quest=c(
-		'comment','Description of this run ','',
-		'mHidro','Start month of hydrological year [1-12] ','',
-		'acum','Number of acummulation months for preceding rain ','',
-		'pOut','Output directory ','',
-		'viRgf','Vegetation Index raster group ','',
-		'rainRgf','Precipitation raster group ','',
-		'sYear','Start year of the series ','',
-		'sMonth','Start month of the series ','',
-		'petRgf','PET raster group or leave blank to create it ','',			
-		'yIni','Start year of this run ','',
-		'yEnd','End year of this run ','',
-		'driver','GIS format for output images ','RST',
-		'flag','Missing value for output images ','-999',
-		'acction','Proceed with monitoring(m), assesment(a), both(b), none(n) ','b',		
-		'tmaxRgf','Tmax raster group ','',
-		'tmedRgf','Tmed raster group ','',
-		'tminRgf','Tmin raster group ','',
-		'radRgf','Extraterrestial solar radiation raster group ','',
-		'fileName','Name of this parameter file ', paste('rue',format(Sys.time(), "%d%b"),'.conf',sep='')
-	)
-	
-	quest=matrix(quest,ncol=3, byrow=TRUE, dimnames=list(NULL,c('var','question','defaultvalue')))
-	response=as.data.frame(t(quest[,3]),stringsAsFactor=F)
-	names(response)=quest[,1]
-	if (conf!='') {
-		conaux=as.data.frame(readConfigFile(conf))
-		response[names(conaux)]=conaux
-	}
-	nq=1:(nrow(quest)-5) #out Pet data and filename
-	nqp=(nrow(quest)-5):(nrow(quest)-1)	
-	cat(rep('\n',times=200))
-	cat(text)
-	#writeLines(strwrap(text,60))
-	flush.console()	
-	for (i in nq) {
-		if (response[i]=='') aux=readline(paste(quest[i,2],':?'))  
-		else aux=readline(paste(quest[i,2],'[',response[[i]],']:?',sep=''))
-		if (aux!='') response[i]=aux
-	}
-	# Pet data
-	if (response['petRgf']=='') {		
-		print('Introduce datos para calculo de PET')
-		for (i in nqp){
-			aux=readline(quest[i,2])
-			if (aux!='') response[i]=aux
-		}	
-	}
-	conffile=as.vector(response$fileName)	
-	write.table(t(response[-nrow(quest)]),conffile,sep='=',quote=F,col.names=F)
-	conffile	
-}
-
-###############################################
-# NAME: Initial
-# PURPOSE:
-#     Read an 2dRue configuration file and prepare the enviroment to run it and check the inputs.
-#     
-# INPUTS:
-#       conf: config file. 
-# OUTPUTS:
-#       boolean TRUE if all the options ar valid and the analisys can be done.
-#		FALSE if any options is erroneus or incongruent
-initial=function (filename){
-	
-	checkgroup=function(rgffile){		
-		g=rgf.read(rgffile)
-		cat('CHECKING ',rgffile,'\nHead of',rgffile,'\n',head(g),'...', fill=TRUE)
-		return(g)
-		pb =txtProgressBar(min=0,max=length(g),char='*',width=20,style=3)
-		aux=GDALinfo(g[1],silent=TRUE)		
-		for (i in g) { 
-			aux2=GDALinfo(i,silent=TRUE)
-			if (any(aux!=aux2)) stop(paste('incongruent series in file',i))
-			setTxtProgressBar(pb, getTxtProgressBar(pb)+1)			
-		}		
-		close(pb)
-		cat('\n')
-		g
-	}
-	
-	checkgroups=function(rgffile1,rgffile2){		
-		g1=rgf.read(rgffile1)
-		g2=rgf.read(rgffile2)
-		cat('CHECKING spatial and time congruency',rgffile1,rgffile2,'\n')
-		aux1=GDALinfo(g1[1],silent=TRUE)
-		aux2=GDALinfo(g2[1],silent=TRUE)
-		#TODO: checkear no solo col&row si no el resto de parametros 
-		if ((any(aux1[1:2]!=aux2[1:2])) || (length(aux1)!=length(aux2))) {stop('incongruent series')}		
-	}
-	
-	buildpet=function(o){				
-		checkgroup(o$tmin)
-		checkgroup(o$tmax)
-		checkgroup(o$tmed)
-		checkgroups(o$tmin,o$tmax)
-		checkgroups(o$tmin,o$tmed)
-		if (o$radGroup!='') {rad=rgf.read(o$radGroup)}
-		else {
-			rad=paste(o$pout,'/rad/rad',1:12,'.',o$driver)
-			img=readGDAL(tmin[1])
-			solarRad12M(img,aux,drivername=o$driver,mvFlag=o$flag)
-		}
-		#batchPetHgsm(o$mesini,tmin,tmed,tmax,rad)
-	}
-
-	
-	########################## Initial Start
-	f=readConfigFile(filename)
-	o=list(pOut='',yIni=0,yEnd=0,acum=0,vi='',rain='',pet='',ppet='',prain='',driver='',flag=0)	
-	#check / in paths
-	#	f=as.data.frame(t(sub('/$','',f[1,])),stringsAsFactors=FALSE) #quitar / de cualquier cadena que lo tuviera
-	#check output directory		
-	if (!file_test('-d',f$pOut)) stop('Output directory not accesible ',f$pOut)
-	else o$pOut=f$pOut 
-	#check meshidro
-	if (!(f$mHidro %in% 1:12)) stop('mes hidro must be between 1:12')
-	else f$mHidro=as.integer(f$mHidro)
-	#check nacum
-	if (!(f$acum %in% 1:12)) stop('nacum must be between 1:12')
-	else o$acum=as.integer(f$acum)
-	#check sMonth
-	if (!(f$sMonth %in% 1:12)) stop('sMonth must be between 1:12')
-	else o$sMonth=as.integer(f$sMonth)
-	#check sMonth
-	if (!(f$sYear %in% 1900:2100)) stop('sYear must be a valid year')
-	else o$sYear=as.integer(f$sYear)
-	#check driver
-	if (isSupportedGDALFormat(f$driver)) o$driver=f$driver
-	#check mvFlag is a number
-	if (!is.finite(as.numeric(f$flag))) stop('mvFlag not a number')
-	else o$flag=as.numeric(f$flag)
-	#check ini and end years
-	if (!(as.integer(f$yEnd)>=as.integer(f$yIni)+3)) stop('must have at least 3 years to do a regresion')
-	else {
-		o$yEnd=as.integer(f$yEnd)
-		o$yIni=as.integer(f$yIni)
-	}
-	
-	#check that Rain and Vi groups are temporaly and spatialy coherents	
-	o$vi=checkgroup(f$viRgf)
-	o$rain=checkgroup(f$rainRgf)
-	checkgroups(f$viRgf,f$rainRgf)
-	rgfLength=length(rgf.read(f$viRgf))
-	
-	#Create PET directory and build PET if needed
-	if (f$petRgf=='') {		
-		aux=getwd()
-		petDir=paste(o$pOut,'/PET',sep='')
-		#crear directorio Pet
-		if (file.access(petDir)==-1) {
-			if (!dir.create(petDir)) stop('no se puede crear petdir')
-		}		
-		sDate=as.Date(paste(o$sYear,o$sMonth,1,sep='/'))		
-		f$petRgf='petGroup.rgf'
-		write(paste(o$pOut,'/PET/pet',format(seq(sDate,length.out=rgfLength,by='months'),'%m%Y'),'.rst',sep=''),f$petRgf)
-		#buildpet(o)
-	}
-	#check that Pet and Vi groups are temporaly and spatialy coherents
-	o$pet=checkgroup(f$petRgf)
-	#checkgroups(f$viRgf,f$petRgf)
-	
-	#calculo de los rgf pet,rain,vi 
-	HM=f$mHidro
-	SY=o$sYear
-	SM=o$sMonth
-	AYI=o$yIni
-	AYE=o$yEnd
-	if (HM>=SM) {
-		SY=SY+1
-		e1=12+HM-SM		
-	} else {
-		e1=HM-SM
-	}
-	e2=(AYI-SY)*12	
-	i1=e1+e2+1
-	i2=i1+(AYE-AYI)*12
-	if (e2<0 | i2<0) {stop('error en las series')}	
-	o$rain=o$rain[i1:i2]	
-	o$pet=o$pet[i1:i2]
-	o$vi=o$vi[i1:i2]
-	
-	#calculo de los rgf ppet,prain
-	#calculo de meses previos al periodo de analisis necesarios
-	#TODO: ajustar extension a driver
-	rgf.summary(o$vi,'maxvi.rst',fun='MAX',drivername=o$driver,mvFlag=o$flag)
-	#maxvi=readGDAL('maxvi.rst',silent=TRUE)
-	whenvi=rgf.when(o$vi,'maxvi.rst')
-	#calculo de meses previos necesarios 
-	nmonthsneeded=o$acum-min(whenvi$band1)+1 # ej: 10 - 1 + 1 para 10 meses de acum con maximo VI en primer mes...
-	if (nmonthsneeded<0) nmonthsneeded=0	
-	i3=i1-nmonthsneeded
-	o$prain=o$rain[i3:i1]
-	o$ppet=o$pet[i3:i1]
-		
-	#return
-	o
-}
-
 
 resume=function(o){
 	#parameter´s name in parent frame (to do a 'by reference')
 	originalo=deparse(substitute(o))
 	o$resume=FALSE
 	#outNames
-	outNames=c('svi.stk','srain.stk','')
-	outNames=paste(o$pOut,outNames,'.',o$driver)
+	outNames=c('svi.stk','srain.stk','vimax','viMaxWhen')
+	outNames=paste(o$pOut,'/',outNames,'.',o$driver,sep='')
 	#reasterStack
 	rasterStack(o$svi,outNames[1],interleave='BIP')
 	rasterStack(o$srain,outNames[2],interleave='BIP')
 	o$STKsvi=outNames[1]
 	o$STKsrain=outNames[2]
-	
+	#viMax & viMaxWhen
+	rgf.summary(o$vi,outNames[3],fun='MAX')
+	aux=rgf.when(o$vi,outNames[3])
+	writeGDAL(aux,outNames[4])
+	o$viMax=outNames[3]
+	o$viMaxWhen=outNames[4]
+	#summary vi and rain series
 	o$RESvi=rgf.resume(o$vi)
 	o$RESrain=rgf.resume(o$rain)	
 	o$resume=TRUE
@@ -707,8 +520,7 @@ monitoring = function(o) {
 		o$f4=outNames[4]	
 		o$f5=outNames[5]
 		o$f6=outNames[6]
-		o$f7=outNames[7]
-		browser()
+		o$f7=outNames[7]		
 		o$monitoring=TRUE
 		attr(o$monitoring,'date')=format(Sys.time(),'%d %b %Y %H:%M:%S')
 		aux=matrix(0, nrow = 7, ncol=7, dimnames = list(c('f1','f2','f3','f4','f5','f6','f7'),c("Min","1st Qu","Median","Mean","3rd Qu","Max","NA's")))
@@ -1156,13 +968,13 @@ regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
 	cols=GDALinfo(ndviFl[1])[2]
 	#browser()
 	#calculo size del buffer de lectura para que lea bloques de 5000 elementos aproximadamente
-	filelength=bands*rows*cols
+	items=bands*rows*cols
 	#este es un size optimo para la funcion 'by'
-	itemsToRead=trunc(500000/bands)	
+	pixelsToRead=trunc(5000/bands)	
 	#num de bloques de size itemsToRead
-	nblocks=ceiling(filelength/itemsToRead)
+	nblocks=ceiling(items/pixelsToRead)
 	#tamaño del ultimo bloque
-	rest=filelength-(nblocks-1)*itemsToRead
+	rest=items-(nblocks*pixelsToRead)
 	
 	if (!silent) pb=txtProgressBar(min=0,max=nblocks,char='*',width=20,style=3)
 	
@@ -1171,16 +983,15 @@ regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
 	in2f=file(tmpFn3,'rb')
 	outf=file(tmpFn4,'w')
 	
-	#por cada bloque 
-	for (i in 1:nblocks) {
-		#no sobrepasar fin de fichero
-		if (i==nblocks) {itemsToRead=rest}
+	#por cada (bloque + 1) 
+	for (i in 0:nblocks) {
+		if (i == nblocks) {pixelsToRead=items - (nblocks*pixelstoRead)}
 		#leer un linestoread de lineas del fichero de entrada
-		Y=readBin(depf,numeric(),itemsToRead,size=4)
-		X1=readBin(in1f,numeric(),itemsToRead,size=4)
-		X2=readBin(in2f,numeric(),itemsToRead,size=4)
+		Y=readBin(depf,numeric(),pixelsToRead*bands,size=4)
+		X1=readBin(in1f,numeric(),pixelsToRead*bands,size=4)
+		X2=readBin(in2f,numeric(),pixelsToRead*bands,size=4)
 		
-		df=cbind(Y,X1,X2,pixel=rep(1:(itemsToRead/bands),each=bands))
+		df=cbind(Y,X1,X2,pixel=rep(1:pixelsToRead,each=bands))
 		rm(Y,X1,X2)
 		
 		#calcular regresion multiple
@@ -1192,6 +1003,7 @@ regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
 		#actualizo progressbar
 		if (!silent) setTxtProgressBar(pb,i)
 	}
+	
 	close(depf)
 	close(in1f)
 	close(in2f)
@@ -1225,7 +1037,7 @@ regStepDF=function (X){
 	#quitar casos con algun NA
 	aux=unique(X[is.na(X[,1]*X[,2]*X[,3]),4]) #lista de pixel con algun dato a NA
 	X[X[,4] %in% aux,1]=NA	
-	X=na.omit(X) #esto puede originar que algun pixel pierda alguna banda, pero no todas!!!
+	X=na.omit(X) 
 
 	ndimX=dim(X)[1]
 	index=unique(X[,4])
@@ -1236,13 +1048,18 @@ regStepDF=function (X){
 	N=sum(X[,4]==X[,4][1])
 	ncases=length(index)
 	
-	
+	RX=0
 	#print(paste('dimX:',dimX,' dimXna:',ndimX,' ncases:',ncases))
-	
+	#browser()
 	# Correlaciones simples entre variables segun Box 15.2
-	aux=(unlist(by(X[,1:3],X[,4],cor)))
-	dim(aux)=c(9,ncases)
-	RX=t(aux[c(6,2,3),])
+	#aux=(unlist(by(X[,1:3],X[,4],cor)))
+	for (i in 0:(ncases-1)){		
+		RX=rbind(RX,cor(X[(i*N+1):((i+1)*N),1:3])[c(6,2,3)])
+	}
+	RX=RX[-1,]
+	
+	#dim(aux)=c(9,ncases)
+	#RX=t(aux[c(6,2,3),])
 	#colnames(RX)=c('Rx1x2','Rx1Y','Rx2Y')
 	
 	# Coeficientes standard de regresion parcial
