@@ -1,10 +1,19 @@
 ###############################################
-# NAME: rgf.resume
+# rgf.date: 
+# 
+# 
+# 
+###############################################
+
+
+
+###############################################
+# NAME: rgf.summarize
 # PURPOSE:
 # INPUTS:
 # OUTPUTS:
 ###############################################
-rgf.resume=function(x){
+rgf.summarize=function(x){
 	o=list(denx='',deny='',box='',summ='',vNA='',size=length(x))
 	deny=denx=box=summ=0
 	cont=1
@@ -15,14 +24,16 @@ rgf.resume=function(x){
 		denx=cbind(denx,d$x)
 		deny=cbind(deny,d$y)
 		box=cbind(box,boxplot(b,plot=F)$stats)
-		summ=(cbind(summ,summary(b)))
+		aux=summary(b)
+		if (length(aux)!=7) aux=c(aux,"NA's"=0)
+		summ=(cbind(summ,aux))	
 		setTxtProgressBar(pb, cont)
 		cont=cont+1
 	}
 	o$denx=denx[,-1]
 	o$deny=deny[,-1]
 	o$box=box[,-1]
-	o$summ=summ[,-1]
+	o$summ=summ[,-1]	
 	o$vNA=o$summ[7,]
 	o	
 }

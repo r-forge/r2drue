@@ -13,7 +13,7 @@
 \tabular{ll}{
 Package: \tab r2dRue\cr
 Type: \tab Package\cr
-Version: \tab 1.0.1\cr
+Version: \tab 1.0.2\cr
 Date: \tab 2009-12-17\cr
 License: \tab GPL\cr
 LazyLoad: \tab yes\cr

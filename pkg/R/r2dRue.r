@@ -4,7 +4,7 @@ editr2dRfile = function(conf='', overwrite=FALSE, verbose=0) {
 # NAME: r2dRueWiz
 # PURPOSE:
 #     Read an 2dRue configuration file and perform actions acordely 
-#     Caln calculate the monitoring, the assesment, both or none, acordely with the input.
+#     Caln calculate the monitoring, the assessment, both or none, acordely with the input.
 # INPUTS:
 #       conf: config file. If none is provided, it will be create through interactive questions to the user 
 #       overwrite: Logical flag. When overwrite is TRUE, none of the existing files will be replaced by new outputs, forcing to stop the proccess if necessary. 
@@ -79,7 +79,7 @@ editr2dRfile = function(conf='', overwrite=FALSE, verbose=0) {
 			else print('can´t read this raster group...')
 		}
 		repeat {
-			aux=input('Start yyyy/mm of this raster groups',paste(response$sYear,response$sMonth,sep='/'))
+			aux=input('Start moment (yyyy/mm) of these raster groups',paste(response$sYear,response$sMonth,sep='/'))
 			er=try({aux=as.Date(paste(aux,'01',sep='/'))})		
 			if (class(er)!='try-error') {sDate=aux; break}
 			else print('not a date')
@@ -118,11 +118,11 @@ editr2dRfile = function(conf='', overwrite=FALSE, verbose=0) {
 		
 	#show info
 	cat(sprintf('\nOriginal data: %d images, from %s to %s',sLength,format(sIniDate,'%b/%Y'),format(sEndDate,'%b/%Y')))
-	cat(sprintf('\n             : %d Hidrological years, %s - %s starting at %s',length(sHYears),sHYears[1],sHYears[length(sHYears)],month.name[response$mHidro]))
-	cat(sprintf('\n             : %d Incomplete Hidrological years: %s\n',length(sFailHYears),paste(sFailHYears,collapse=', ')))
+	cat(sprintf('\n             : %d Hydrological years, %s - %s starting in %s',length(sHYears),sHYears[1],sHYears[length(sHYears)],month.name[response$mHidro]))
+	cat(sprintf('\n             : %d Incomplete Hydrological years: %s\n',length(sFailHYears),paste(sFailHYears,collapse=', ')))
 		
 	repeat {
-		aux=input('Number of acummulation months for preceding rain',response$acum)
+		aux=input('Number of cumulative months for preceding rain',response$acum)
 		er=try({iaux=as.integer(aux)})		
 		if (iaux %in% 1:30) {response$acum=iaux; break}
 		else print('it´s simple... a integer great than 0')
@@ -161,7 +161,6 @@ editr2dRfile = function(conf='', overwrite=FALSE, verbose=0) {
 	
 	fileName=input('File name for this config file',conf)	
 	write.table(t(as.data.frame(response)),fileName,sep='=',quote=FALSE,col.names=FALSE)	
-	return()
 }
 
 r2dRplot=function(o,type='rain',scope='run',var='vi',pixel=1,col=c('blue','green4','salmon','gray')){
@@ -169,9 +168,9 @@ r2dRplot=function(o,type='rain',scope='run',var='vi',pixel=1,col=c('blue','green
 # NAME: ruePlot
 # PURPOSE:
 #     Read an 2dRue configuration file and perform actions acordely 
-#     Caln calculate the monitoring, the assesment, both or none, acordely with the input.
+#     Caln calculate the monitoring, the assessment, both or none, acordely with the input.
 # INPUTS:
-	if (o$resume) {
+	if (o$summarize) {
 	switch(type,		
 		'vimax'= {		
 			nf <- layout(matrix(c(1,1,2,3,3,4), 3, 2))			
@@ -185,8 +184,8 @@ r2dRplot=function(o,type='rain',scope='run',var='vi',pixel=1,col=c('blue','green
 			hist(o$sDates[a$band1],xlab='months',breaks='months',format='%b%y',las=3,freq=T)			
 		},
 		'box'= {
-			if (var=='vi') boxplot(o$RESvi$box,names=format(o$rDates,'%b%y'),las=3,main='Vegetation Index boxplot',ylab='vegetation index')
-			if (var=='rain') boxplot(o$RESrain$box,names=format(o$rDates,'%b%y'),las=3,main='Precipitation boxplot',ylab='rain (mm)')		
+			if (var=='vi') boxplot(o$RESvi$box,names=format(o$rDates,'%b%y'),las=3,main='spatially lumped vegetation index',ylab='vegetation index')
+			if (var=='rain') boxplot(o$RESrain$box,names=format(o$rDates,'%b%y'),las=3,main='spatially lumped precipitation',ylab='rain (mm)')		
 		},
 		'density'= {		
 			if (var=='vi') plot(o$RESvi$deny~o$RESvi$denx,type='l',col=c(1:12))
@@ -197,7 +196,7 @@ r2dRplot=function(o,type='rain',scope='run',var='vi',pixel=1,col=c('blue','green
 			barplot(o$RESrain$summ[4,],add=T,col=3)
 			barplot((o$RESrain$summ[6,]==0)*-10,add=T,col='red')		
 		},
-		'assesment1'= {
+		'assessment1'= {
 			a=readGDAL(o$rueEx,silent=TRUE)
 			a$rueObsEx=a$band1
 			a$rueObsMe=readGDAL(o$rueMe,silent=TRUE)$band1
@@ -205,11 +204,11 @@ r2dRplot=function(o,type='rain',scope='run',var='vi',pixel=1,col=c('blue','green
 			a$aiObsMe=readGDAL(o$aiMe,silent=TRUE)$band1
 			nf <- layout(matrix(c(1,2), 1, 2))
 			layout.show(nf)						
-			plot(a$rueObsEx~a$aiObsEx,main='rue vs ai - Extremo')
-			plot(a$rueObsMe~a$aiObsMe,main='rue vs ai - Medio', xlim=c(0,6),ylim=c(0,0.02))
+			plot(a$rueObsEx~a$aiObsEx,main='rue vs ai - Extremo',xlab='aiObsEx',ylab='rueObsEx')
+			plot(a$rueObsMe~a$aiObsMe,main='rue vs ai - Medio',xlab='aiObsMe',ylab='rueObsMe')
 			
 		},
-		'assesment2'= {
+		'assessment2'= {
 			a=readGDAL(o$rueEx,silent=TRUE)
 			a$rueObsEx=a$band1
 			a$rueObsMe=readGDAL(o$rueMe,silent=TRUE)$band1
@@ -249,21 +248,22 @@ r2dRplot=function(o,type='rain',scope='run',var='vi',pixel=1,col=c('blue','green
 			close(in1)
 			close(in2)
 		})
-	} else (stop('Resume not done... ejecute resume() function first'))
+	} else (stop('summarize not done... ejecute summarize() function first'))
 }
 
 showInfo=function (o) {
 ###############################################
-# NAME: assestment
-# PURPOSE: Lee un fo
+# NAME: 
+# PURPOSE:
 # INPUTS:
-# OUTPUTS:	
+# OUTPUTS:
+###############################################	
 	#print info
 	aux='\n'
 	aux=c(aux,'\n',sprintf('################### r2dRue RUN: %s',o$comment))
 	aux=c(aux,'\n',sprintf('Original data: %d images, from %s to %s',o$sLength,format(o$sIniDate,'%b/%Y'),format(o$sEndDate,'%b/%Y')))
-	aux=c(aux,'\n',sprintf('Analisys data: %d images, from %s to %s, %d Hidrological years starting at %s',o$rLength,format(o$rIniDate,'%b/%Y'),format(o$rEndDate,'%b/%Y'),o$rYears,month.name[o$mHidro]))
-	aux=c(aux,'\n',sprintf('               %d acummulated months, %d preimages from  %s to %s',o$acum, length(o$ppet),format(o$rPreDates[1],'%b/%Y'),format(o$rPreDates[length(o$ppet)],'%b/%Y') ))
+	aux=c(aux,'\n',sprintf('Analysis data: %d images, from %s to %s, %d Hydrological years starting in %s',o$rLength,format(o$rIniDate,'%b/%Y'),format(o$rEndDate,'%b/%Y'),o$rYears,month.name[o$mHidro]))
+	aux=c(aux,'\n',sprintf('               %d cumulative precipitation months, %d preceding images from  %s to %s',o$acum, length(o$ppet),format(o$rPreDates[1],'%b/%Y'),format(o$rPreDates[length(o$ppet)],'%b/%Y') ))
 	aux=c(aux,'\n\n',sprintf('---------- Raster Group Info'))
 	aux=c(aux,'\n',sprintf('viRgf     : %s',attr(o$vi,'path')))
 	aux=c(aux,'\n',sprintf('            %s ...',paste(head(attr(o$vi,'files'),10),collapse=' ')))
@@ -279,10 +279,10 @@ showInfo=function (o) {
 	aux=c(aux,'\n',sprintf('cols: %d  rows: %d  res: %f  proj: %s',o$gdal[1],o$gdal[2],o$gdal[6],attr(o$gdal,'projection')))
 	aux=c(aux,'\n')
 	cat(aux)
-	if (o$assesment){
-		cat(c('\n',paste('---------- Assesment results at ',attr(o$assesment,'date')),'\n'))		
-		print(attr(o$assesment,'summary'))
-	}else{cat(c('\n',sprintf('---------- Assesment results not updated')))}
+	if (o$assessment){
+		cat(c('\n',paste('---------- Assessment results at ',attr(o$assessment,'date')),'\n'))		
+		print(attr(o$assessment,'summary'))
+	}else{cat(c('\n',sprintf('---------- assessment results not updated')))}
 	if (o$monitoring){
 		cat(c('\n',paste('---------- Monitoring results at ',attr(o$monitoring,'date')),'\n'))
 		print(attr(o$monitoring,'summary'))
@@ -292,7 +292,7 @@ showInfo=function (o) {
 }
 
 ###############################################
-# NAME: assestment
+# NAME: 
 # PURPOSE: Lee un fo
 # INPUTS:
 # OUTPUTS:
@@ -330,9 +330,9 @@ readr2dRfile=function (conf){
 		#calculated spaciales
 		gdal='',
 		#calculates extern
-		assesment=FALSE,rueMed='',rueEx='',aiMed='',aiEx='',
+		assessment=FALSE,rueMed='',rueEx='',aiMed='',aiEx='',
 		monitoring=FALSE,f1='',f2='',f3='',f4='',f5='',f6='',f7='',f8='',f9='',
-		resume=FALSE,viMax='',whenviMax=''
+		summarize=FALSE,viMax='',whenviMax=''
 	)
 	
 	#read fields from file
@@ -398,10 +398,10 @@ readr2dRfile=function (conf){
 }
 
 
-resume=function(o){
+summarize=function(o){
 	#parameter´s name in parent frame (to do a 'by reference')
 	originalo=deparse(substitute(o))
-	o$resume=FALSE
+	o$summarize=FALSE
 	#outNames
 	outNames=c('svi.stk','srain.stk','vimax','viMaxWhen')
 	outNames=paste(o$pOut,'/',outNames,'.',o$driver,sep='')
@@ -417,26 +417,26 @@ resume=function(o){
 	o$viMax=outNames[3]
 	o$viMaxWhen=outNames[4]
 	#summary vi and rain series
-	o$RESvi=rgf.resume(o$vi)
-	o$RESrain=rgf.resume(o$rain)	
-	o$resume=TRUE
+	o$RESvi=rgf.summarize(o$vi)
+	o$RESrain=rgf.summarize(o$rain)	
+	o$summarize=TRUE
 	assign(originalo,o,envir=parent.frame())
 }
 
 ###############################################
-# NAME: assestment
+# NAME: assessment
 # PURPOSE:
 # INPUTS:
 # OUTPUTS:
-assesment = function(o) {
+assessment = function(o) {
 	#parameter´s name in parent frame (to do a 'by reference')
 	originalo=deparse(substitute(o))
-	#set assesment flag to FALSE	
+	#set assessment flag to FALSE	
 	o$rueEx=o$rueMed=o$aiEx=o$aiMed=''		
-	o$assestment=FALSE
+	o$assessment=FALSE
 	assign(originalo,o,envir=parent.frame())
 	#def files
-	outNames=c('rueObsMed','rueObsEx','aiObsMed','aiObsEx')
+	outNames=c('rueObsMe','rueObsEx','aiObsMe','aiObsEx')
 	outNames=paste(o$pOut,'/',outNames,'.',o$driver,sep='')
 	#try to make Indices	
 	er=try({		
@@ -455,15 +455,15 @@ assesment = function(o) {
 		o$rueMed=outNames[2];
 		o$aiEx=outNames[3];
 		o$aiMed=outNames[4];	
-		o$assesment=TRUE 
-		attr(o$assesment,'date')=format(Sys.time(),'%d %b %Y %H:%M:%S')
-		aux=matrix(0, nrow = 4, ncol=7, dimnames = list(c('rueObsMed','rueObsEx','aiObsMed','aiObsEx'),c("Min","1st Qu","Median","Mean","3rd Qu","Max","NA's")))
+		o$assessment=TRUE 
+		attr(o$assessment,'date')=format(Sys.time(),'%d %b %Y %H:%M:%S')
+		aux=matrix(0, nrow = 4, ncol=7, dimnames = list(c('rueObsMe','rueObsEx','aiObsMe','aiObsEx'),c("Min","1st Qu","Median","Mean","3rd Qu","Max","NA's")))
 		for (i in 1:4) {	
 			aux1=summary(readGDAL(outNames[i],silent=TRUE)$band1)
 			if (length(aux1)==6) aux1=c(aux1,0)
 			aux[i,]=aux1
 		}
-		attr(o$assesment,'summary')=aux
+		attr(o$assessment,'summary')=aux
 		assign(originalo,o,envir=parent.frame())
 	}
 }
@@ -478,12 +478,12 @@ assesment = function(o) {
 monitoring = function(o) {	
 	#parameter´s name in parent frame (to do a 'by reference')
 	originalo=deparse(substitute(o))
-	#set assesment flag to FALSE	
+	#set monitoring flag to FALSE	
 	o$f1=o$f2=o$f3=o$f4=o$f5=o$f6=o$f7=o$f8=o$f9=''			
 	o$monitoring=FALSE
 	assign(originalo,o,envir=parent.frame())
 	#def files
-	outNames=c('f1','f2','f3','f4','f5','f6','f7')
+	outNames=c('index','effect_time','effect_arid','veg_response','ta_single','tv_single','av_single')
 	outNames=paste(o$pOut,'/',outNames,'.',o$driver,sep='')
 	annualVis=paste(o$pOut,'/viMed',o$yIni:o$yEnd,'.',o$driver,sep='')
 	annualIaMed=paste(o$pOut,'/aiMed',o$yIni:o$yEnd,'.',o$driver,sep='')
@@ -523,7 +523,7 @@ monitoring = function(o) {
 		o$f7=outNames[7]		
 		o$monitoring=TRUE
 		attr(o$monitoring,'date')=format(Sys.time(),'%d %b %Y %H:%M:%S')
-		aux=matrix(0, nrow = 7, ncol=7, dimnames = list(c('f1','f2','f3','f4','f5','f6','f7'),c("Min","1st Qu","Median","Mean","3rd Qu","Max","NA's")))
+		aux=matrix(0, nrow = 7, ncol=7, dimnames = list(c('index','effect_time','effect_arid','veg_response','ta_single','tv_single','av_single'),c("Min","1st Qu","Median","Mean","3rd Qu","Max","NA's")))
 		for (i in 1:7) {
 			aux1=summary(readGDAL(outNames[i],silent=TRUE)$band1)
 			if (length(aux1)==6) aux1=c(aux1,0)
@@ -539,7 +539,7 @@ monitoring = function(o) {
 # NAME: rueObsMe
 # PURPOSE:
 #     Reads n ndvi files and n rainfall grid files
-#     Then Calculate the RueObsMed grid.
+#     Then Calculate the RueObsMe grid.
 # INPUTS:
 #       rainFl: File names list of rainfall grid 
 #       viFl: File names list of vegetation index grid 
@@ -574,6 +574,7 @@ rueObsMe = function(rainFl, viFl, silent=FALSE) {
 			if (!silent) setTxtProgressBar(pb, i*12+j)
 		}
 		SumNdvi=SumNdvi/12
+		if (sum(SumRain == 0, na.rm=TRUE) > 0) SumRain=SumRain+(SumRain == 0) # cambio los pixels a 0mm de lluvia acumulada por 1mm
 		RueMed=RueMed+(SumNdvi/SumRain)
 	}
 	RueMed=RueMed/nah
@@ -735,6 +736,7 @@ rueObsEx = function (rainFl, viFl, preRainFl, nMonths=6, silent=FALSE){
 			MsknMonths=(m == j)#
 			if (sum(MsknMonths)>0) {
 				#Calcular RueMax
+				if (sum(SumRain == 0, na.rm=TRUE) > 0) SumRain=SumRain+(SumRain == 0) # cambio los pixels a 0mm de lluvia acumulada por 1mm
 				RueMax=RueMax*(!MskMonth)+(NdviMax/SumRain)*MsknMonths*MskMonth #overlay RueMax
 			}
 		}
@@ -948,7 +950,7 @@ rasterStack=function(inFl,outFN,asc=FALSE,zip=FALSE,dec=3,interleave='BIP',silen
 # INPUTS:regStepRaster(vi,y,ia,fl,drivername='RST',mvFlag=-1)
 # OUTPUTS:
 ###############################################
-regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
+regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,abc,...){
 	#comprueba condiciones de error
 	if (length(outFl)!=7) stop('outFl may be a list of seven filenames')
 	if (2*length(ndviFl)!=(length(timeFl)+length(aridFl))) stop('ndviFl, tempFl and aridFl, should have equal length')
@@ -972,9 +974,9 @@ regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
 	#este es un size optimo para la funcion 'by'
 	pixelsToRead=trunc(5000/bands)	
 	#num de bloques de size itemsToRead
-	nblocks=ceiling(items/pixelsToRead)
+	nblocks=trunc(items/(pixelsToRead*bands))
 	#tamaño del ultimo bloque
-	rest=items-(nblocks*pixelsToRead)
+	rest=rows*cols-nblocks*pixelsToRead
 	
 	if (!silent) pb=txtProgressBar(min=0,max=nblocks,char='*',width=20,style=3)
 	
@@ -983,23 +985,27 @@ regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
 	in2f=file(tmpFn3,'rb')
 	outf=file(tmpFn4,'w')
 	
+#	cat(sprintf('\n%dx%dx%d, pixels=%d,   items=%d',rows,cols,bands,rows*cols,rows*cols*bands))#
+	#cat(sprintf('\n 	  pixToRead=%d, bloques=%d, resto=% dpixels',pixelsToRead,nblocks,rest))
+	#cat('\n')
+	
 	#por cada (bloque + 1) 
 	for (i in 0:nblocks) {
-		if (i == nblocks) {pixelsToRead=items - (nblocks*pixelstoRead)}
+		if (i == nblocks) {pixelsToRead=rest}
 		#leer un linestoread de lineas del fichero de entrada
 		Y=readBin(depf,numeric(),pixelsToRead*bands,size=4)
 		X1=readBin(in1f,numeric(),pixelsToRead*bands,size=4)
 		X2=readBin(in2f,numeric(),pixelsToRead*bands,size=4)
-		
+	
 		df=cbind(Y,X1,X2,pixel=rep(1:pixelsToRead,each=bands))
 		rm(Y,X1,X2)
-		
+	
 		#calcular regresion multiple
 		cn=regStepDF(df)
 		
 		#escribir salida
 		write.table(round(cn,4),append=TRUE,sep='\t',file=outf,col.names=FALSE,row.names=FALSE)
-
+	
 		#actualizo progressbar
 		if (!silent) setTxtProgressBar(pb,i)
 	}
@@ -1034,7 +1040,8 @@ regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
 regStepDF=function (X){
 	dimX=dim(X)[1]
 	cols=max(X[,4])
-	#quitar casos con algun NA
+	ocases=length(unique(X[,4]))
+	#quitar casos con algun NA en alguna de las bandas
 	aux=unique(X[is.na(X[,1]*X[,2]*X[,3]),4]) #lista de pixel con algun dato a NA
 	X[X[,4] %in% aux,1]=NA	
 	X=na.omit(X) 
@@ -1042,11 +1049,12 @@ regStepDF=function (X){
 	ndimX=dim(X)[1]
 	index=unique(X[,4])
 	#si todo el dataframe es iniutilizable
-	if (ndimX==0) return(matrix(NA,dimX,6))
+	if (ndimX==0) return(matrix(NA,ocases,7))
 	
 	#num de bandas en la matriz
 	N=sum(X[,4]==X[,4][1])
 	ncases=length(index)
+	
 	
 	RX=0
 	#print(paste('dimX:',dimX,' dimXna:',ndimX,' ncases:',ncases))
@@ -1100,8 +1108,8 @@ regStepDF=function (X){
 	#matriz de salida del efecto de la aridez y el tiempo q[,1] tiempo, q[,2] aridez, q[,3] respuesta de la vegetacion (1,2,3 o 4)
 	q=matrix(-1,ncases,7) #casos sin NA
 	nq=matrix(NA,cols-ncases,7) #casos con NA
-	colnames(q) =c('index','efect_time','efect_arid','vege_response','ta_simple','tv_simple','av_simple')
-	colnames(nq)=c('index','efect_time','efect_arid','vege_response','ta_simple','tv_simple','av_simple')
+	colnames(q) =c('index','effect_time','effect_arid','veg_response','ta_single','tv_single','av_single')
+	colnames(nq)=c('index','effect_time','effect_arid','veg_response','ta_single','tv_single','av_single')
 	
 	#indetifica el pixel al que peretenece el resultado
 	q[,1]=index

@@ -1,7 +1,7 @@
 Package: r2dRue
 Type: Package
 Title: 2dRue: 2d Rain Use Efficience model
-Version: 1.0.1
+Version: 1.0.2
 Date: 2010-04-20
 Author: Gabriel del Barrio, Juan Puigdefabregas, Maria E. Sanjuan & Alberto Ruiz
 Maintainer: <aruiz@eeza.csic.es>

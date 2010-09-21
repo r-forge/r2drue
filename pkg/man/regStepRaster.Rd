@@ -5,7 +5,7 @@
 Step Regresion over raster images
 }
 \description{
-This function realices a step regresion 
+This function realices a step by step regresion 
 }
 \usage{
 regStepRaster(ndviFl, timeFl, aridFl, outFl, silent = FALSE, ...)
