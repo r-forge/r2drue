@@ -3,40 +3,42 @@
 \alias{batchPetHgsm}
 \alias{petHgsm}
 \title{
-Hargraves-Samani Potential Evapotranspiration function
+Computes Potential Evapo-Transpiration (PET)
 }
 \description{
-Given a set of images of temperature and solar radiation, the potential evapotranspiration is calculated according to Hargraves-Samani equation. batchPet () provides a batch process to calculate the PET over several sets of images.
+PET (mm) is computed from mean maximum, mean and mean minimum air temperatures in Celsius degree and extra-terrestrial solar radiation (cal/cm2/day) using the Hargreaves-Samani equation.
+
+batchPet () provides a batch process to compute PET over sets of images, typically time-series, specified as raster groups.
 }
 \usage{
 petHgsm(Tmin,Tmax,Tmed,Rad,month)
-batchPetHgsm(monthIni, Tmin, Tmax, Tmed, Rad, outFl, ...)
+batchPetHgsm(outFl, monthIni, Tmin, Tmed, Tmax, Rad, ...)
 }
 \arguments{
   \item{monthIni}{
-A integer between 1 and 12 that is the month of the first image in the dataset.
+The month order-number of the first image in the time-series. An integer between 1 and 12.
 }
   \item{month}{
-The month to calc the PET (numeric 1 to 12)
+The target month order-number to compute PET An integer between 1 and 12.
 }
   \item{Tmin}{
-In petHgsm a SpatialGridDataFrame with minimum air temperature (Celsius degree)
-In batchpetHgsm a character vector with the names of the files with minimum air temperature (Celsius degree)
+In petHgsm, a SpatialGridDataFrame with mean minimum air temperature in Celsius degrees.
+In batchpetHgsm, a raster group with the file names containing mean minimum air temperature.
 }
   \item{Tmax}{
-In petHgsm a SpatialGridDataFrame with maximum air temperature (Celsius degree)
-In batchpetHgsm a character vector with the names of the files with maximum air temperature (Celsius degree)
+In petHgsm a SpatialGridDataFrame with mean maximum air temperature in Celsius degrees.
+In batchpetHgsm, a raster group with the file names containing mean maximum air temperature.
 }
   \item{Tmed}{
-In petHgsm a SpatialGridDataFrame with mean air temperature (Celsius degree)
-In batchpetHgsm a character vector with the names of the files with mean air temperature (Celsius degree)
+In petHgsm a SpatialGridDataFrame with mean air temperature (Celsius degree).
+In batchpetHgsm, a raster group with the file names containing mean air temperature.
 }
   \item{Rad}{
-In petHgsm a SpatialGridDataFrame with extra-terrestial solar radiation
-In batchpetHgsm a character vector with the names of the files with extra-terrestial solar radiation
+In petHgsm a SpatialGridDataFrame with extra-terrestial solar radiation (cal/cm2/day).
+In batchpetHgsm a raster group with the file names containing extra-terrestial solar radiation.
 }
   \item{outFl}{
-A list of file names to save the results
+A raster group with file names to save the results
 }
   \item{\dots}{
 Any unmatched parameter will be passed to the writeGDAL routine.
@@ -44,7 +46,8 @@ Any unmatched parameter will be passed to the writeGDAL routine.
 }
 
 \value{
-petHgsm returns a spatialGridDataFrame representing the potential evapotranspiration. batchEtp write to disc, the calculated images for each set of images provided.
+petHgsm returns a spatialGridDataFrame representing the potential evapotranspiration.
+batchEtp writes to disc the computed rasters as SpatialGridDataFrame objects.
 }
 \references{
 Estimating potential evapotranspiration.

@@ -6,10 +6,12 @@
 \alias{rueObsEx}
 
 \title{
-2dRue indexes
+Functions to perform the assessment component of a r2dRue analysis through direct specification of parameters
 }
 \description{
-Functions to calculate several files needed to calculate de 2dRue model.
+These functions compute Mean Observed RUE, Mean Observed Aridity, Extreme Observed RUE and Extreme Observed Aridity, and save the results to corresponding raster files.
+
+Their arguments can be manually specified, or they are piped from the assessment function.
 }
 \usage{
 rueObsMe(rainFl, viFl, silent = FALSE)
@@ -19,42 +21,46 @@ aiObsEx(rainFl, viFl, petFl, preRainFl, prePetFl, FAO=FALSE, nMonths = 6, silent
 }
 \arguments{
   \item{rainFl}{
-Text list (vector) with the file names of the rainfall grids
+Raster group file with the file names of the precipitation grids
 }
   \item{viFl}{
-Text list (vector) with the file names of the vegetation index grids
+Raster group file with the file names of the vegetation index grids
 }
   \item{petFl}{
-Text list (vector) with the file names of the evapotranspiration grids
+Raster group file with the file names of the evapotranspiration grids
 }
   \item{preRainFl}{
-Text list (vector) with the file names of the rainfall files outside the given period
+Raster group file with the file names of the precipitation files preceding the given period
 }
   \item{prePetFl}{
-Text list (vector) with the file names of the evapotranspiration files outside the given period
+Raster group file with the file names of the evapotranspiration files preceding the given period
 }
   \item{FAO}{
 logical; If TRUE the index is according with the FAO definition
 }
   \item{nMonths}{
-A integer value representing the water acumulation period.
+A integer value representing the number of cumulative months for preceding precipitation.
 If a valid image filename is supplied, the value is read from the file.
 }
   \item{silent}{
-logical; if TRUE, comment and non-fatal CPL driver errors suppressed
+Logical. If TRUE, comment and non-fatal CPL driver errors are suppressed
 }
 }
 \details{
-rueObsMe calculate the mean observed RUE.
-aiObsMe calculate the mean observed aridity index.
-rueObsEx calculate the extrem observed RUE.
-aiObsEx calculate the extrem aridity index.
+rueObsMe compute mean observed RUE.
+aiObsMe compute mean observed aridity index.
+rueObsEx compute extreme observed RUE.
+aiObsEx compute extreme observed aridity index.
 }
 \value{
-The output of each function is a SpatialGridDataFrame class
+The following raster files are created resulting from the assessment operation. They belong to the SpatialGridDataFrame class
+  \item{rueObsMe }{Mean Observed rain Use Efficiency}
+  \item{rueObsEx }{Extreme Observed Rain Use Efficiency}
+  \item{aiObsMe }{Mean Observed Aridity Index}
+  \item{aiObsEx }{Extreme Observed Aridity Index}
 }
 \references{
-Article submitted and under revision.
+del Barrio, G., Puigdefabregas, J. Sanjuan, M.E., Stellmes, M. & Ruiz, A. (2010). Assessment and monitoring of land condition in the Iberian Peninsula, 1989-2000. Remote Sensing of Environment, 114: 1817-1832 \url{http://dx.doi.org/10.1016/j.rse.2010.03.009}
 }
 \author{
 Gabriel del Barrio, Juan Puigdefabregas, Maria E. Sanjuan & Alberto Ruiz

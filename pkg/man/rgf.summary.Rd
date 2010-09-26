@@ -3,11 +3,14 @@
 \alias{rgf.summary}
 \alias{rgf.when}
 \title{
-Function to summarize raster group files.
+Extract summaries from time-series specified as raster group files.
 }
 \description{
-These functions may facilitate working with raster group files.
-Provides functions to calculate summaries over a raster group, like Max, Min, Sum, Mean or Std, and to find when the selected summary is located in a raster group (ie. Order No. in the time series).
+These functions query the time-series specified in a raster group file and save the selected summary in a new raster.
+Summaries refer to the population of values of each grid cell across the time-series.
+
+rgf.summary computes summaries, and rgf.when finds at which moment (ie. order No. in the time-series) the selected summary is located.
+
 }
 \usage{
 rgf.summary(inFl, outFl, step= length(inFl), fun = "SUM", silent = FALSE, ...)
@@ -16,14 +19,14 @@ rgf.when(inFl, ref, order = "FIRST", silent = FALSE)
 
 \arguments{
   \item{inFl}{
-Text list (vector) with the names of the input raster files.
+Raster group file with the file names of the input time-series.
 }
   \item{outFl}{
-Text list (vector) with the names of the output raster files.
+Raster group file with the file names of the output time-series.
 }
   \item{step}{
 Number of images taken for each summary.
-If not supply a value, the summary is made on the complete list.
+If a value is not supplied, the summary is made on the complete time-series.
 }
   \item{fun}{
 Summary function SUM, MAX, MIN, MEAN, COUNT, RANGE, SD, VAR,MEDIAN.
@@ -32,27 +35,31 @@ Summary function SUM, MAX, MIN, MEAN, COUNT, RANGE, SD, VAR,MEDIAN.
 The reference image.
 }
   \item{order}{
-"FIRST" or "LAST"; to find the fisrt or last ocurrence in the serie. 
+"FIRST" or "LAST"; to find the first or the last occurrence in the time-series. 
 }
   \item{silent}{
-logical; if TRUE, comment and non-fatal CPL driver errors suppressed.
+logical; if TRUE, comment and non-fatal CPL driver errors are suppressed.
 }
   \item{\dots}{
 Any unmatched parameter will be passed to the writeGDAL function.
 }
 }
 \details{
-rgf.summary calculate statistic summaries over a set of images.
+Any summary can be computed for the entire set, or for a subset of images.
+For example, let a time-series made of 36 images representing monthly NDVI.
+The maximum NDVI found at each grid cell could be computed for the entire series (step not specified), for each year of the series (step = 12), or quarterly (step = 3).
+The corresponding summary images are then saved to raster files.
 
-A summary can be calculated for the entire set of images, or for a subset. For example, let a sequence of 36 images representing the average monthly NDVI. An image can be made with the maximum NDVI in the entire series, or calculate the maximum NDVI for each year of the series (step = 12) or the maximum for each station (step = 3).Summaries may be done over the full list of images, or over defined subsets.
-
-rgf.when compares a reference image with a list of images and return a new composite image where each cell contains the order number at which its reference value is found in the time input series.  
+rgf.when compares a reference image with the images in the time-series (or a subset of it), and returns a composite image where each grid cell contains the order-number at which its reference value is found.  
 
 }
 \value{
-Rgf.summary not returns any value, but save on disk, the solicited summaries.
+rgf.summary does not returns any value, but writes to disk the solicited summaries.
 
-Rgf.when return a composite image as a spatialgriddataframe.
+rgf.when returns a composite raster image as a SpatialGridDataFrame.
+}
+\seealso{
+\code{\link{rgf.create}}
 }
 \author{
 Alberto Ruiz, aruiz@eeza.csic.es
