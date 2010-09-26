@@ -1,14 +1,12 @@
 
-editr2dRfile = function(conf='', overwrite=FALSE, verbose=0) {
+editr2dRfile = function(conf='') {
 ###############################################
 # NAME: r2dRueWiz
 # PURPOSE:
 #     Read an 2dRue configuration file and perform actions acordely 
-#     Caln calculate the monitoring, the assessment, both or none, acordely with the input.
+#     Can calculate the monitoring, the assessment, both or none, acordely with the input.
 # INPUTS:
 #       conf: config file. If none is provided, it will be create through interactive questions to the user 
-#       overwrite: Logical flag. When overwrite is TRUE, none of the existing files will be replaced by new outputs, forcing to stop the proccess if necessary. 
-#       verbose: level of log detail
 # OUTPUTS:
 #       r2dRue wiz is a procedure that can produced all the output involved in r2dRue analisys.
 #		It will be created a log file named as the config file but with its extension turned to .log	
@@ -66,17 +64,17 @@ editr2dRfile = function(conf='', overwrite=FALSE, verbose=0) {
 		repeat {
 			aux=input('Vegetation Index raster group',response$viRgf)
 			if (canReadRgf(aux)) {response$viRgf=aux; break}
-			else print('can´t read this raster group...')
+			else print('cant read this raster group...')
 		}
 		repeat {
 			aux=input('Precipitation raster group',response$rainRgf)			
 			if (canReadRgf(aux)) {response$rainRgf=aux; break}
-			else print('can´t read this raster group...')
+			else print('cant read this raster group...')
 		}
 		repeat {
 			aux=input('PET raster group',response$petRgf)
 			if (canReadRgf(aux)) {response$petRgf=aux; break}
-			else print('can´t read this raster group...')
+			else print('cant read this raster group...')
 		}
 		repeat {
 			aux=input('Start moment (yyyy/mm) of these raster groups',paste(response$sYear,response$sMonth,sep='/'))
@@ -88,7 +86,7 @@ editr2dRfile = function(conf='', overwrite=FALSE, verbose=0) {
 			aux=input('Start month of hydrological year [1-12]',response$mHidro)
 			er=try({iaux=as.integer(aux)})		
 			if (iaux %in% 1:12) {response$mHidro=iaux; break}
-			else print('it´s simple... [1-12]')
+			else print('its simple... [1-12]')
 		}
 	})
 	
@@ -125,7 +123,7 @@ editr2dRfile = function(conf='', overwrite=FALSE, verbose=0) {
 		aux=input('Number of cumulative months for preceding rain',response$acum)
 		er=try({iaux=as.integer(aux)})		
 		if (iaux %in% 1:30) {response$acum=iaux; break}
-		else print('it´s simple... a integer great than 0')
+		else print('its simple... a integer great than 0')
 	}
 	
 	preDate=sort(seq(as.Date(paste(sHYears[1],response$mHidro,1,sep='/')),length.out=response$acum+1,by='-1 months')[-1])
@@ -399,7 +397,7 @@ readr2dRfile=function (conf){
 
 
 summarize=function(o){
-	#parameter´s name in parent frame (to do a 'by reference')
+	#parameters name in parent frame (to do a 'by reference')
 	originalo=deparse(substitute(o))
 	o$summarize=FALSE
 	#outNames
@@ -429,7 +427,7 @@ summarize=function(o){
 # INPUTS:
 # OUTPUTS:
 assessment = function(o) {
-	#parameter´s name in parent frame (to do a 'by reference')
+	#parameters name in parent frame (to do a 'by reference')
 	originalo=deparse(substitute(o))
 	#set assessment flag to FALSE	
 	o$rueEx=o$rueMed=o$aiEx=o$aiMed=''		
@@ -476,7 +474,7 @@ assessment = function(o) {
 # INPUTS:
 # OUTPUTS:
 monitoring = function(o) {	
-	#parameter´s name in parent frame (to do a 'by reference')
+	#parameters name in parent frame (to do a 'by reference')
 	originalo=deparse(substitute(o))
 	#set monitoring flag to FALSE	
 	o$f1=o$f2=o$f3=o$f4=o$f5=o$f6=o$f7=o$f8=o$f9=''			
@@ -950,7 +948,7 @@ rasterStack=function(inFl,outFN,asc=FALSE,zip=FALSE,dec=3,interleave='BIP',silen
 # INPUTS:regStepRaster(vi,y,ia,fl,drivername='RST',mvFlag=-1)
 # OUTPUTS:
 ###############################################
-regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,abc,...){
+regStepRaster=function(ndviFl,timeFl,aridFl,outFl,silent=FALSE,...){
 	#comprueba condiciones de error
 	if (length(outFl)!=7) stop('outFl may be a list of seven filenames')
 	if (2*length(ndviFl)!=(length(timeFl)+length(aridFl))) stop('ndviFl, tempFl and aridFl, should have equal length')

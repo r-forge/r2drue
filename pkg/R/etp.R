@@ -19,7 +19,6 @@ petHgsm= function(Tmin, Tmax, Tmed, Rad, month){
 # OUTPUTS:
 # CHANGES: 27/01/2010 - bug en el calculo del indice de Rad (implica reescritura de codigo)
 # CHANGES: 20/04/2010 - cambio de parametro date por monthIni
-# TODO: introducir el calculo de RAD en Etp ¿seguro? si, si RAD no esta calcularlo, si esta usarlo
 ###############################################
 batchPetHgsm= function(outFl,monthIni,Tmin,Tmed,Tmax,Rad,...) {
 	# comprobacion de los parametros
@@ -72,7 +71,7 @@ batchPetHgsm= function(outFl,monthIni,Tmin,Tmed,Tmax,Rad,...) {
 ###############################################
 solarRad = function (img, day) {	
 	
-	if (is.projected(img)) stop('Can´t calculate extraterrestial radiation over projected images')	
+	if (is.projected(img)) stop('Cant calculate extraterrestial radiation over projected images')
 	
 	DTOR=0.0174533 #cte de grados a radianes
 	

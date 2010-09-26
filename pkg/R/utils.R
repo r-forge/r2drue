@@ -7,6 +7,11 @@
 
 readIniFile <- function(filename, token='=', commenttoken=';') {
 	
+	trim<- function(x){
+		f <- function(s) {return( gsub('^[[:space:]]+', '',  gsub('[[:space:]]+$', '', s) ) )}
+		return(unlist(lapply(x, f)))
+	}
+
 	strSplitOnFirstToken <- function(s, token="=") {
 		pos <- which(strsplit(s, '')[[1]]==token)[1]
 		if (is.na(pos)) {
