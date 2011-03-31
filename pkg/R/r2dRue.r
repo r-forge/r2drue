@@ -1064,6 +1064,14 @@ regStepDF=function (X){
 	}
 	RX=RX[-1,]
 	
+	#caso especial...
+	#si en X hay un solo pixel valido, y el resto son NAs, 
+	#RX adopta la forma [ 0, 0, 0] 
+	#                   [ A, B, C]
+	#y al quitar la primera linea pasa de ser una matriz a ser un vector...
+	#así que hay que forzar a ser matriz
+	if (class(RX)=='numeric') {RX= as.matrix(t(RX))}	
+	
 	#dim(aux)=c(9,ncases)
 	#RX=t(aux[c(6,2,3),])
 	#colnames(RX)=c('Rx1x2','Rx1Y','Rx2Y')
