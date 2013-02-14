@@ -6,18 +6,24 @@
 # CHANGES: 20/04/2010 - bug en el computo de Lat
 # CHANGES: 20/04/2010 - cambio en el computo de dia
 # CHANGES: 20/04/2010 - quitar valor por defecto de day
-# TODO: comprobar que sea latlong
+# CHANGES: 23/05/2010 - stop si no es latlong
+# CHANGES: 07/02/2013 - adecuar a sp > 0.9-90 (slot coord no existe)
+# TODO: si no es latlong proyectar a latlong calcular rad y reproyectar a original
 # TODO: Justificar el 898
 # TODO: ampliar para calculo simplificado de la FAO
 ###############################################
 solarRad = function (img, day) {	
-	#	
+	
+	if (is.projected(img)) stop('Cant calculate extraterrestial radiation over projected images')
+	
 	DTOR=0.0174533 #cte de grados a radianes
 	
 	nRow=img@grid@cells.dim[2]
 	nCol=img@grid@cells.dim[1]
 	rowSize=img@grid@cellsize[2]
-	lowerY=img@coords[3] #Y del punto central
+	# CHANGE lowerY=a@coords[3] no funciona a partir de version de sp 0.9-91
+	# uso coordinates
+	lowerY=min(coordinates(img)[,2]) #Y del punto central
 	lat=as.matrix(img)
 	
 	lat[1:nCol,]=rep((0:(nRow-1)*rowSize)+lowerY,each=nCol) #imagen donde cada pixel tiene el valor central de su coord Y 
@@ -50,4 +56,5 @@ solarRad12M = function (img, outFl, ...) {
 	DDA=c(15,45,75,106,136,167,197,228,259,289,320,350)
 	
 	for (i in 1:12) writeGDAL(solarRad(img,DDA[i]),outFl[i],...)
+	outFl
 }
