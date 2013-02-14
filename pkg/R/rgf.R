@@ -167,6 +167,7 @@ rgf.when = function (inFl,ref,order='FIRST',silent=FALSE) {
 # INPUTS:
 # OUTPUTS:
 # CHANGES:	27/01/2010 	- Bug en el conteo del % realizado para operaciones no acumulativas
+# CHANGES:	07/02/2013 	- Bug en el calculo de MAX y MIN
 ###############################################
 
 rgf.summary = function(inFl,outFl,step=length(inFl),fun='SUM',silent=FALSE,...) {
@@ -189,7 +190,14 @@ rgf.summary = function(inFl,outFl,step=length(inFl),fun='SUM',silent=FALSE,...) 
 		aux=readGDAL(inFl[1],silent=TRUE)	
 		
 		for(i in 0:(nah-1)){
-			dat=0
+			#CHANGE dat=0 
+			#inicializo dat con 0 para SUM o MEAN o con la primera imagen del grupo para MAX o MIN
+			switch (fun,
+					SUM = {dat = 0},
+					MIN = {dat = readGDAL(inFl[i*step+j],silent=TRUE)$band1},
+					MAX = {dat = readGDAL(inFl[i*step+j],silent=TRUE)$band1},
+					MEAN= {dat = 0},
+			)
 			for(j in 1:step) {
 				switch (fun,
 						SUM = {dat = dat+readGDAL(inFl[i*step+j],silent=TRUE)$band1},
